@@ -1,21 +1,64 @@
 {
-    "id": "com.example.guidecreator",
+    "id": "com.example.ngextension",
     "name": "NGExtension",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "main": "main.js",
     "host": {
         "app": "PS",
         "minVersion": "22.0.0"
     },
-    "uiEntryPoints": [
+    "manifestVersion": 4,
+    "entrypoints": [
         {
             "type": "panel",
-            "label": "参考线生成器",
-            "panelId": "guide-panel",
+            "label": {
+                "default": "参考线生成器"
+            },
+            "id": "guide-panel",
+            "icons": [
+                {
+                    "width": 23,
+                    "height": 23,
+                    "path": "asset/icons/plus.png",
+                    "scale": [
+                        1,
+                        2
+                    ],
+                    "theme": [
+                        "darkest",
+                        "dark",
+                        "medium",
+                        "lightest",
+                        "light"
+                    ]
+                }
+            ],
             "minimumSize": {
-                "width": 320,
-                "height": 720
+                "width": 240,
+                "height": 250
+            },
+            "maximumSize": {
+                "width": 1600,
+                "height": 1600
             }
+        }
+    ],
+    "icons": [
+        {
+            "width": 23,
+            "height": 23,
+            "path": "asset/icons/plus.png",
+            "scale": [
+                1,
+                2
+            ],
+            "theme": [
+                "darkest",
+                "dark",
+                "medium",
+                "lightest",
+                "light"
+            ]
         }
     ]
 }

@@ -199,7 +199,7 @@ class GuidePanel {
         const assets = await loadUI("src/module/guide/panel.html", "src/module/guide/panel.css");
         node.style.width = "100%";
         node.style.height = "100%";
-        node.style.overflow = "hidden";
+        node.style.overflow = "auto";
         node.innerHTML = `<style>${assets.css}</style>${assets.html}`;
 
         const horizontalInput = node.querySelector("#horizontal-input");
