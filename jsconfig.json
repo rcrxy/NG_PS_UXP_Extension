@@ -1,7 +1,9 @@
 {
     "compilerOptions": {
         "target": "ES2020",
-        "module": "commonjs",
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "jsx": "react-jsx",
         "checkJs": false,
         "allowSyntheticDefaultImports": true,
         "esModuleInterop": true,
@@ -12,8 +14,9 @@
         ]
     },
     "include": [
-        "main.js",
-        "src/**/*.js"
+        "vite.config.mjs",
+        "src/**/*.js",
+        "src/**/*.jsx"
     ],
     "exclude": [
         "node_modules",
