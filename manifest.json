@@ -19,7 +19,7 @@
                 {
                     "width": 23,
                     "height": 23,
-                    "path": "asset/icons/plus.png",
+                    "path": "asset/icons/plus-dark.png",
                     "scale": [
                         1,
                         2
@@ -27,7 +27,18 @@
                     "theme": [
                         "darkest",
                         "dark",
-                        "medium",
+                        "medium"
+                    ]
+                },
+                {
+                    "width": 23,
+                    "height": 23,
+                    "path": "asset/icons/plus-light.png",
+                    "scale": [
+                        1,
+                        2
+                    ],
+                    "theme": [
                         "lightest",
                         "light"
                     ]
@@ -47,7 +58,7 @@
         {
             "width": 23,
             "height": 23,
-            "path": "asset/icons/plus.png",
+            "path": "asset/icons/plus-dark.png",
             "scale": [
                 1,
                 2
@@ -55,7 +66,18 @@
             "theme": [
                 "darkest",
                 "dark",
-                "medium",
+                "medium"
+            ]
+        },
+        {
+            "width": 23,
+            "height": 23,
+            "path": "asset/icons/plus-light.png",
+            "scale": [
+                1,
+                2
+            ],
+            "theme": [
                 "lightest",
                 "light"
             ]
