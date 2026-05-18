@@ -1,7 +1,7 @@
 import { app, action, constants, core } from "photoshop";
 import { storage } from "uxp";
 
-const DEBUG_BUILD = "read-guides-export-png-batch-save-v9";
+const DEBUG_BUILD = "read-guides-export-format-quality-v10";
 
 function log(message, detail) {
     if (typeof console === "undefined" || typeof console.log !== "function") {
@@ -364,8 +364,20 @@ export async function readReferenceLines() {
     return result;
 }
 
-function formatExportName(index) {
-    return `tailoring_${String(index + 1).padStart(2, "0")}.png`;
+function normalizeFormat(value) {
+    return String(value || "").toLowerCase() === "jpg" ? "jpg" : "png";
+}
+
+function normalizeQuality(value) {
+    const quality = Number(value);
+    if (!Number.isFinite(quality)) {
+        return 10;
+    }
+    return Math.max(1, Math.min(12, Math.round(quality)));
+}
+
+function formatExportName(index, format) {
+    return `tailoring_${String(index + 1).padStart(2, "0")}.${format}`;
 }
 
 function getCloseWithoutSavingOption() {
@@ -436,9 +448,8 @@ async function runAsModal(task, commandName) {
     throw lastError || new Error("Photoshop modal 执行失败");
 }
 
-async function saveDocumentAsPng(file) {
-    const token = await storage.localFileSystem.createSessionToken(file);
-    const descriptor = {
+function buildPngSaveDescriptor(token) {
+    return {
         _obj: "save",
         as: {
             _obj: "PNGFormat",
@@ -457,20 +468,47 @@ async function saveDocumentAsPng(file) {
         saveStage: { _enum: "saveStageType", _value: "saveBegin" },
         _options: { dialogOptions: "dontDisplay" },
     };
+}
 
-    log("save png descriptor", descriptor);
+function buildJpgSaveDescriptor(token, quality) {
+    return {
+        _obj: "save",
+        as: {
+            _obj: "JPEG",
+            extendedQuality: normalizeQuality(quality),
+            matteColor: { _enum: "matteColor", _value: "none" },
+        },
+        in: {
+            _path: token,
+            _kind: "local",
+        },
+        documentID: app.activeDocument && app.activeDocument._id,
+        copy: true,
+        lowerCase: true,
+        saveStage: { _enum: "saveStageType", _value: "saveBegin" },
+        _options: { dialogOptions: "dontDisplay" },
+    };
+}
+
+async function saveDocument(file, format, quality) {
+    const token = await storage.localFileSystem.createSessionToken(file);
+    const descriptor = format === "jpg" ? buildJpgSaveDescriptor(token, quality) : buildPngSaveDescriptor(token);
+
+    log("save document descriptor", { format, quality, descriptor });
     const result = await action.batchPlay([descriptor], {
         synchronousExecution: true,
         modalBehavior: "execute",
     });
-    log("save png result", result);
+    log("save document result", result);
 }
 
-export async function exportSlicesAsPng() {
+export async function exportSlices(options = {}) {
     if (!app.documents || app.documents.length === 0 || !app.activeDocument) {
         throw new Error("请先打开一个 Photoshop 文档");
     }
 
+    const format = normalizeFormat(options.format);
+    const quality = normalizeQuality(options.quality);
     const sourceDocument = app.activeDocument;
     const guideResult = await readReferenceLines();
     const slices = buildSlices(sourceDocument, guideResult);
@@ -488,45 +526,44 @@ export async function exportSlicesAsPng() {
 
     const files = [];
     for (let index = 0; index < slices.length; index += 1) {
-        const fileName = formatExportName(index);
+        const fileName = formatExportName(index, format);
         const file = await folder.createFile(fileName, { overwrite: true });
         files.push({ file, fileName });
     }
 
-    await runAsModal(
-        async () => {
-            for (let index = 0; index < slices.length; index += 1) {
-                const slice = slices[index];
-                const { file, fileName } = files[index];
-                log("export slice start", { index: index + 1, total: slices.length, fileName, slice });
+    await runAsModal(async () => {
+        for (let index = 0; index < slices.length; index += 1) {
+            const slice = slices[index];
+            const { file, fileName } = files[index];
+            log("export slice start", { index: index + 1, total: slices.length, fileName, slice });
 
-                const sliceDocument = await duplicateDocumentByBatchPlay(sourceDocument, `tailoring_${index + 1}`);
-                try {
-                    const cropBounds = {
-                        left: slice.left,
-                        top: slice.top,
-                        right: slice.right,
-                        bottom: slice.bottom,
-                    };
-                    log("crop slice bounds", cropBounds);
-                    await sliceDocument.crop(cropBounds);
-                    await saveDocumentAsPng(file);
-                    log("export slice done", { index: index + 1, fileName });
-                } finally {
-                    await closeWithoutSaving(sliceDocument);
-                }
+            const sliceDocument = await duplicateDocumentByBatchPlay(sourceDocument, `tailoring_${index + 1}`);
+            try {
+                const cropBounds = {
+                    left: slice.left,
+                    top: slice.top,
+                    right: slice.right,
+                    bottom: slice.bottom,
+                };
+                log("crop slice bounds", cropBounds);
+                await sliceDocument.crop(cropBounds);
+                await saveDocument(file, format, quality);
+                log("export slice done", { index: index + 1, fileName });
+            } finally {
+                await closeWithoutSaving(sliceDocument);
             }
-        },
-        "Tailoring 导出 PNG 切片",
-    );
+        }
+    }, "正在导出...");
 
     const result = {
         count: slices.length,
+        format,
+        quality: format === "jpg" ? quality : undefined,
         folderName: folder.name,
         folderPath: folder.nativePath,
         files: files.map(item => item.fileName),
     };
 
-    log("export png result", result);
+    log("export result", result);
     return result;
 }

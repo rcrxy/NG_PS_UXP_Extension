@@ -23,6 +23,44 @@
     color: #a7a7a7;
 }
 
+.tailoring-row {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.tailoring-label,
+.tailoring-label-row {
+    font-size: 12px;
+    line-height: 1.4;
+    color: #d0d0d0;
+}
+
+.tailoring-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.tailoring-quality-value {
+    color: #f0f0f0;
+}
+
+.tailoring-select {
+    box-sizing: border-box;
+    width: 100%;
+    height: 28px;
+    border: 1px solid #666;
+    border-radius: 4px;
+    background: #333;
+    color: #f0f0f0;
+}
+
+.tailoring-range {
+    width: 100%;
+}
+
 .tailoring-actions {
     display: flex;
     flex-direction: column;
