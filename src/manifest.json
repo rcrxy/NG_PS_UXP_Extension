@@ -1,7 +1,7 @@
 {
     "id": "com.example.ngextension",
     "name": "NGExtension",
-    "version": "0.1.2",
+    "version": "0.1.5",
     "main": "main.js",
     "host": {
         "app": "PS",
@@ -54,11 +54,11 @@
             }
         },
         {
-            "type": "command",
+            "type": "panel",
             "label": {
                 "default": "Tailoring"
             },
-            "id": "tailoring-command",
+            "id": "tailoring-panel",
             "icons": [
                 {
                     "width": 23,
@@ -76,7 +76,15 @@
                         "light"
                     ]
                 }
-            ]
+            ],
+            "minimumSize": {
+                "width": 260,
+                "height": 180
+            },
+            "maximumSize": {
+                "width": 1600,
+                "height": 1600
+            }
         }
     ],
     "icons": [
