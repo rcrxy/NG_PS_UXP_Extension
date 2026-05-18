@@ -1,6 +1,7 @@
 import React, { useRef, useState } from "react";
 import panelCss from "./panel.css?inline";
 import { clearAllGuides, createGuides, isTransientBusyError, parsePositionList } from "./guideService.js";
+import { useInjectedStyle } from "../../util/useInjectedStyle.js";
 
 function readTextfieldValue(ref) {
     const node = ref.current;
@@ -16,6 +17,7 @@ export function GuidePanel() {
     const verticalInputRef = useRef(null);
     const [busy, setBusy] = useState(false);
     const [status, setStatus] = useState({ text: "", isError: false });
+    useInjectedStyle("ng-guide-panel-style", panelCss);
 
     const updateStatus = (text, isError = false) => {
         setStatus({ text, isError });
@@ -105,43 +107,40 @@ export function GuidePanel() {
     };
 
     return (
-        <>
-            <style>{panelCss}</style>
-            <div className="guide-panel">
-                <div className="guide-row">
-                    <sp-field-label class="guide-label" for="horizontal-input">
-                        水平位置（Y）
-                    </sp-field-label>
-                    <sp-textfield id="horizontal-input" ref={horizontalInputRef} size="s" disabled={busy}></sp-textfield>
-                </div>
-
-                <div className="guide-row">
-                    <sp-field-label class="guide-label" for="vertical-input">
-                        垂直位置（X）
-                    </sp-field-label>
-                    <sp-textfield id="vertical-input" ref={verticalInputRef} size="s" disabled={busy}></sp-textfield>
-                </div>
-
-                <div className="guide-actions">
-                    <div className="button-box">
-                        <sp-action-button size="s" variant="cta" disabled={busy} onClick={handleCreateGuides}>
-                            创建参考线
-                        </sp-action-button>
-                    </div>
-                    <div className="button-box">
-                        <sp-action-button size="s" variant="secondary" disabled={busy} onClick={handleClearInput}>
-                            清空输入
-                        </sp-action-button>
-                    </div>
-                    <div className="button-box">
-                        <sp-action-button size="s" variant="secondary" disabled={busy} onClick={handleClearGuides}>
-                            清空参考线
-                        </sp-action-button>
-                    </div>
-                </div>
-
-                <div className={`guide-status${status.isError ? " is-error" : " is-success"}`}>{status.text}</div>
+        <div className="guide-panel">
+            <div className="guide-row">
+                <sp-field-label class="guide-label" for="horizontal-input">
+                    水平位置（Y）
+                </sp-field-label>
+                <sp-textfield id="horizontal-input" ref={horizontalInputRef} size="s" disabled={busy}></sp-textfield>
             </div>
-        </>
+
+            <div className="guide-row">
+                <sp-field-label class="guide-label" for="vertical-input">
+                    垂直位置（X）
+                </sp-field-label>
+                <sp-textfield id="vertical-input" ref={verticalInputRef} size="s" disabled={busy}></sp-textfield>
+            </div>
+
+            <div className="guide-actions">
+                <div className="button-box">
+                    <sp-action-button size="s" variant="cta" disabled={busy} onClick={handleCreateGuides}>
+                        创建参考线
+                    </sp-action-button>
+                </div>
+                <div className="button-box">
+                    <sp-action-button size="s" variant="secondary" disabled={busy} onClick={handleClearInput}>
+                        清空输入
+                    </sp-action-button>
+                </div>
+                <div className="button-box">
+                    <sp-action-button size="s" variant="secondary" disabled={busy} onClick={handleClearGuides}>
+                        清空参考线
+                    </sp-action-button>
+                </div>
+            </div>
+
+            <div className={`guide-status${status.isError ? " is-error" : " is-success"}`}>{status.text}</div>
+        </div>
     );
 }

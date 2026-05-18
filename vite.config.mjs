@@ -24,7 +24,7 @@ export default defineConfig({
         target: "es2020",
         outDir: "dist",
         emptyOutDir: true,
-        sourcemap: false,
+        sourcemap: true,
         minify: false,
         lib: {
             entry: "src/main.jsx",

@@ -52,6 +52,31 @@
                 "width": 1600,
                 "height": 1600
             }
+        },
+        {
+            "type": "command",
+            "label": {
+                "default": "Tailoring"
+            },
+            "id": "tailoring-command",
+            "icons": [
+                {
+                    "width": 23,
+                    "height": 23,
+                    "path": "asset/icons/Tailoring.png",
+                    "scale": [
+                        1,
+                        2
+                    ],
+                    "theme": [
+                        "darkest",
+                        "dark",
+                        "medium",
+                        "lightest",
+                        "light"
+                    ]
+                }
+            ]
         }
     ],
     "icons": [
