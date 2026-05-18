@@ -1,6 +1,7 @@
-import { app, action } from "photoshop";
+import { app, action, constants, core } from "photoshop";
+import { storage } from "uxp";
 
-const DEBUG_BUILD = "read-guides-only-index-count-v5";
+const DEBUG_BUILD = "read-guides-export-png-batch-save-v9";
 
 function log(message, detail) {
     if (typeof console === "undefined" || typeof console.log !== "function") {
@@ -27,6 +28,10 @@ function warn(message, detail) {
     }
 }
 
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 function getNumber(value) {
     if (typeof value === "number") {
         return value;
@@ -42,6 +47,14 @@ function getNumber(value) {
 
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : NaN;
+}
+
+function getDocumentDimension(document, key) {
+    const value = getNumber(document && document[key]);
+    if (!Number.isFinite(value) || value <= 0) {
+        throw new Error(`无法读取文档${key === "width" ? "宽度" : "高度"}`);
+    }
+    return value;
 }
 
 function getEnumValue(value) {
@@ -120,6 +133,48 @@ function collectGuides(rawGuides, source) {
     });
 
     return guides;
+}
+
+function uniqueSortedPositions(values, min, max) {
+    const result = [min];
+    const sorted = values
+        .filter(value => Number.isFinite(value))
+        .map(value => Math.max(min, Math.min(max, value)))
+        .filter(value => value > min && value < max)
+        .sort((left, right) => left - right);
+
+    for (const value of sorted) {
+        if (Math.abs(value - result[result.length - 1]) > 0.5) {
+            result.push(value);
+        }
+    }
+
+    result.push(max);
+    return result;
+}
+
+function buildSlices(document, guideResult) {
+    const width = getDocumentDimension(document, "width");
+    const height = getDocumentDimension(document, "height");
+    const xPositions = uniqueSortedPositions(guideResult.verticalGuides, 0, width);
+    const yPositions = uniqueSortedPositions(guideResult.horizontalGuides, 0, height);
+    const slices = [];
+
+    for (let row = 0; row < yPositions.length - 1; row += 1) {
+        for (let column = 0; column < xPositions.length - 1; column += 1) {
+            const left = xPositions[column];
+            const top = yPositions[row];
+            const right = xPositions[column + 1];
+            const bottom = yPositions[row + 1];
+
+            if (right - left > 0.5 && bottom - top > 0.5) {
+                slices.push({ left, top, right, bottom, row, column });
+            }
+        }
+    }
+
+    log("slices built", { xPositions, yPositions, slices });
+    return slices;
 }
 
 function getDocumentTarget(document) {
@@ -306,5 +361,172 @@ export async function readReferenceLines() {
     };
 
     log("read reference lines result", result);
+    return result;
+}
+
+function formatExportName(index) {
+    return `tailoring_${String(index + 1).padStart(2, "0")}.png`;
+}
+
+function getCloseWithoutSavingOption() {
+    return constants && constants.SaveOptions && constants.SaveOptions.DONOTSAVECHANGES;
+}
+
+async function closeWithoutSaving(document) {
+    if (!document || typeof document.close !== "function") {
+        return;
+    }
+
+    if (typeof document.closeWithoutSaving === "function") {
+        await document.closeWithoutSaving();
+        return;
+    }
+
+    const closeOption = getCloseWithoutSavingOption();
+    if (closeOption) {
+        await document.close(closeOption);
+    } else {
+        await document.close();
+    }
+}
+
+async function duplicateDocumentByBatchPlay(sourceDocument, name) {
+    const descriptor = {
+        _obj: "duplicate",
+        _target: getDocumentTarget(sourceDocument),
+        name,
+        merged: false,
+        _options: { dialogOptions: "dontDisplay" },
+    };
+
+    log("duplicate document descriptor", descriptor);
+    const result = await action.batchPlay([descriptor], {
+        synchronousExecution: true,
+        modalBehavior: "execute",
+    });
+    log("duplicate document result", result);
+
+    const duplicatedDocument = app.activeDocument;
+    if (!duplicatedDocument) {
+        throw new Error("复制文档失败：未找到新建文档");
+    }
+
+    return duplicatedDocument;
+}
+
+async function runAsModal(task, commandName) {
+    let lastError = null;
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+            log("executeAsModal start", { commandName, attempt: attempt + 1 });
+            return await core.executeAsModal(task, { commandName });
+        } catch (error) {
+            lastError = error;
+            warn("executeAsModal failed", {
+                commandName,
+                attempt: attempt + 1,
+                message: error && error.message,
+                error,
+            });
+            await sleep(150);
+        }
+    }
+
+    throw lastError || new Error("Photoshop modal 执行失败");
+}
+
+async function saveDocumentAsPng(file) {
+    const token = await storage.localFileSystem.createSessionToken(file);
+    const descriptor = {
+        _obj: "save",
+        as: {
+            _obj: "PNGFormat",
+            method: { _enum: "PNGMethod", _value: "quick" },
+            PNGInterlaceType: { _enum: "PNGInterlaceType", _value: "PNGInterlaceNone" },
+            PNGFilter: { _enum: "PNGFilter", _value: "PNGFilterAdaptive" },
+            compression: 6,
+        },
+        in: {
+            _path: token,
+            _kind: "local",
+        },
+        documentID: app.activeDocument && app.activeDocument._id,
+        copy: true,
+        lowerCase: true,
+        saveStage: { _enum: "saveStageType", _value: "saveBegin" },
+        _options: { dialogOptions: "dontDisplay" },
+    };
+
+    log("save png descriptor", descriptor);
+    const result = await action.batchPlay([descriptor], {
+        synchronousExecution: true,
+        modalBehavior: "execute",
+    });
+    log("save png result", result);
+}
+
+export async function exportSlicesAsPng() {
+    if (!app.documents || app.documents.length === 0 || !app.activeDocument) {
+        throw new Error("请先打开一个 Photoshop 文档");
+    }
+
+    const sourceDocument = app.activeDocument;
+    const guideResult = await readReferenceLines();
+    const slices = buildSlices(sourceDocument, guideResult);
+
+    if (slices.length === 0) {
+        throw new Error("参考线没有形成可导出的切片区域");
+    }
+
+    log("choose export folder");
+    const folder = await storage.localFileSystem.getFolder();
+    if (!folder) {
+        throw new Error("已取消选择导出目录");
+    }
+    log("export folder selected", { name: folder.name, nativePath: folder.nativePath });
+
+    const files = [];
+    for (let index = 0; index < slices.length; index += 1) {
+        const fileName = formatExportName(index);
+        const file = await folder.createFile(fileName, { overwrite: true });
+        files.push({ file, fileName });
+    }
+
+    await runAsModal(
+        async () => {
+            for (let index = 0; index < slices.length; index += 1) {
+                const slice = slices[index];
+                const { file, fileName } = files[index];
+                log("export slice start", { index: index + 1, total: slices.length, fileName, slice });
+
+                const sliceDocument = await duplicateDocumentByBatchPlay(sourceDocument, `tailoring_${index + 1}`);
+                try {
+                    const cropBounds = {
+                        left: slice.left,
+                        top: slice.top,
+                        right: slice.right,
+                        bottom: slice.bottom,
+                    };
+                    log("crop slice bounds", cropBounds);
+                    await sliceDocument.crop(cropBounds);
+                    await saveDocumentAsPng(file);
+                    log("export slice done", { index: index + 1, fileName });
+                } finally {
+                    await closeWithoutSaving(sliceDocument);
+                }
+            }
+        },
+        "Tailoring 导出 PNG 切片",
+    );
+
+    const result = {
+        count: slices.length,
+        folderName: folder.name,
+        folderPath: folder.nativePath,
+        files: files.map(item => item.fileName),
+    };
+
+    log("export png result", result);
     return result;
 }

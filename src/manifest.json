@@ -1,7 +1,7 @@
 {
     "id": "com.example.ngextension",
     "name": "NGExtension",
-    "version": "0.1.5",
+    "version": "0.2.0",
     "main": "main.js",
     "host": {
         "app": "PS",
@@ -56,7 +56,7 @@
         {
             "type": "panel",
             "label": {
-                "default": "Tailoring"
+                "default": "自定义导出"
             },
             "id": "tailoring-panel",
             "icons": [
