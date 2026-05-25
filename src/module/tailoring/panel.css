@@ -9,6 +9,22 @@
     color: #e6e6e6;
 }
 
+.tailoring-command-dialog {
+    box-sizing: border-box;
+    width: 360px;
+    max-width: calc(100vw - 32px);
+    padding: 0;
+    border: 1px solid #555;
+    border-radius: 6px;
+    background: #2f2f2f;
+    color: #e6e6e6;
+}
+
+.tailoring-command-dialog .tailoring-panel {
+    height: auto;
+    min-height: 0;
+}
+
 .tailoring-title {
     margin: 0 0 8px;
     font-size: 15px;

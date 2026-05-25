@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import panelCss from "./panel.css?inline";
-import { exportSlices, readReferenceLines } from "./tailoringService.js";
 import { useInjectedStyle } from "../../util/useInjectedStyle.js";
 
 function log(message, detail) {
@@ -15,60 +14,30 @@ function log(message, detail) {
     }
 }
 
-export function TailoringPanel() {
+export function TailoringPanel({ onClose, onExport }) {
     const [busy, setBusy] = useState(false);
     const [format, setFormat] = useState("png");
     const [quality, setQuality] = useState(10);
-    const [status, setStatus] = useState({ text: "格式选择调试版 v10", isError: false });
+    const [status, setStatus] = useState({ text: "设置导出格式后开始导出", isError: false });
     useInjectedStyle("ng-tailoring-panel-style", panelCss);
 
-    const handleReadGuides = async () => {
+    const handleExport = () => {
         if (busy) {
             return;
         }
 
         setBusy(true);
-        setStatus({ text: "正在读取参考线...", isError: false });
-
         try {
-            log("read button clicked");
-            const result = await readReferenceLines();
-            setStatus({
-                text: `读取完成：共 ${result.count} 条（水平 ${result.horizontalGuides.length} / 垂直 ${result.verticalGuides.length}）`,
-                isError: false,
-            });
+            log("export confirmed", { format, quality });
+            if (typeof onExport === "function") {
+                setStatus({ text: "正在关闭窗口并开始导出...", isError: false });
+                onExport({ format, quality });
+            } else {
+                setStatus({ text: "导出入口未初始化", isError: true });
+                setBusy(false);
+            }
         } catch (error) {
-            log("read reference lines failed", {
-                message: error && error.message,
-                stack: error && error.stack,
-                error,
-            });
-            setStatus({
-                text: (error && error.message) || "读取参考线失败",
-                isError: true,
-            });
-        } finally {
-            setBusy(false);
-        }
-    };
-
-    const handleExport = async () => {
-        if (busy) {
-            return;
-        }
-
-        setBusy(true);
-        setStatus({ text: `正在裁切并导出 ${format.toUpperCase()}...`, isError: false });
-
-        try {
-            log("export button clicked", { format, quality });
-            const result = await exportSlices({ format, quality });
-            setStatus({
-                text: `导出完成：共 ${result.count} 个 ${result.format.toUpperCase()}`,
-                isError: false,
-            });
-        } catch (error) {
-            log("export failed", {
+            log("export submit failed", {
                 message: error && error.message,
                 stack: error && error.stack,
                 error,
@@ -77,15 +46,23 @@ export function TailoringPanel() {
                 text: (error && error.message) || "导出失败",
                 isError: true,
             });
-        } finally {
             setBusy(false);
+        }
+    };
+
+    const handleCancel = () => {
+        if (busy) {
+            return;
+        }
+        if (typeof onClose === "function") {
+            onClose();
         }
     };
 
     return (
         <div className="tailoring-panel">
             <h2 className="tailoring-title">Tailoring</h2>
-            <p className="tailoring-help">根据参考线裁切并导出，当前支持 PNG/JPG。调试版 v10。</p>
+            <p className="tailoring-help">根据当前文档参考线裁切并导出。</p>
 
             <div className="tailoring-row">
                 <sp-field-label class="tailoring-label" for="tailoring-format">
@@ -125,8 +102,8 @@ export function TailoringPanel() {
             )}
 
             <div className="tailoring-actions">
-                <sp-action-button size="s" variant="cta" disabled={busy} onClick={handleReadGuides}>
-                    读取参考线
+                <sp-action-button size="s" variant="secondary" disabled={busy} onClick={handleCancel}>
+                    取消
                 </sp-action-button>
                 <sp-action-button size="s" variant="cta" disabled={busy} onClick={handleExport}>
                     裁切导出

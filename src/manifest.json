@@ -54,11 +54,11 @@
             }
         },
         {
-            "type": "panel",
+            "type": "command",
             "label": {
                 "default": "自定义导出"
             },
-            "id": "tailoring-panel",
+            "id": "tailoring-command",
             "icons": [
                 {
                     "width": 23,
@@ -76,15 +76,7 @@
                         "light"
                     ]
                 }
-            ],
-            "minimumSize": {
-                "width": 260,
-                "height": 180
-            },
-            "maximumSize": {
-                "width": 1600,
-                "height": 1600
-            }
+            ]
         }
     ],
     "icons": [
