@@ -1,105 +1,198 @@
-.tailoring-panel {
-    box-sizing: border-box;
-    width: 100%;
-    height: 100%;
-    min-height: 100%;
-    padding: 12px;
-    display: flex;
-    flex-direction: column;
-    color: #e6e6e6;
-}
-
 .tailoring-command-dialog {
     box-sizing: border-box;
-    width: 360px;
-    max-width: calc(100vw - 32px);
+    width: 520px;
+    height: 430px;
     padding: 0;
     border: 1px solid #555;
-    border-radius: 6px;
+    border-radius: 0;
     background: #2f2f2f;
     color: #e6e6e6;
 }
 
-.tailoring-command-dialog .tailoring-panel {
-    height: auto;
-    min-height: 0;
-}
-
-.tailoring-title {
-    margin: 0 0 8px;
-    font-size: 15px;
-    line-height: 1.35;
-    color: #f0f0f0;
-}
-
-.tailoring-help {
-    margin: 0 0 12px;
-    font-size: 11px;
-    line-height: 1.45;
-    color: #a7a7a7;
-}
-
-.tailoring-row {
+.tailoring-dialog-layout {
+    box-sizing: border-box;
+    width: 520px;
+    height: 410px;
+    padding: 16px 14px;
     display: flex;
-    flex-direction: column;
-    gap: 5px;
-    margin-bottom: 10px;
+    flex-direction: row;
+    position: relative;
+    color: #e6e6e6;
+    overflow: visible;
 }
 
-.tailoring-label,
-.tailoring-label-row {
+.tailoring-config {
+    box-sizing: border-box;
+    width: 390px;
+    padding-right: 18px;
+}
+
+.tailoring-name-section {
+    box-sizing: border-box;
+    width: 100%;
+    margin-bottom: 14px;
+}
+
+.tailoring-name-label {
+    display: block;
+    margin-bottom: 5px;
     font-size: 12px;
-    line-height: 1.4;
+    line-height: 16px;
     color: #d0d0d0;
 }
 
-.tailoring-label-row {
+.tailoring-section {
+    box-sizing: border-box;
+    width: 100%;
+    margin-bottom: 14px;
+    padding: 14px 10px 10px 10px;
+    border: 1px solid #4f4f4f;
+    position: relative;
+}
+
+.tailoring-section-title {
+    position: absolute;
+    top: -9px;
+    left: 14px;
+    padding: 0 8px;
+    background: #2f2f2f;
+    color: #d0d0d0;
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.tailoring-name-row {
+    width: 100%;
     display: flex;
+    flex-direction: row;
     align-items: center;
-    justify-content: space-between;
+}
+
+.tailoring-name-row sp-textfield {
+    flex: 1 1 auto;
+}
+
+.tailoring-format-row {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.tailoring-format-row sp-picker {
+    width: 48%;
+}
+
+.tailoring-quality-label {
+    width: 34px;
+    margin-left: 8px;
+    font-size: 12px;
+    line-height: 16px;
+    color: #d0d0d0;
+}
+
+.tailoring-format-row sp-slider {
+    flex: 1 1 auto;
+    margin-left: 6px;
 }
 
 .tailoring-quality-value {
+    width: 22px;
+    margin-left: 6px;
+    font-size: 12px;
+    line-height: 16px;
     color: #f0f0f0;
+    text-align: right;
 }
 
-.tailoring-select {
+.tailoring-mode-row {
+    width: 100%;
+}
+
+.tailoring-mode-row sp-picker {
+    width: 100%;
+}
+
+.tailoring-size-grid {
+    width: 100%;
+    margin-top: 8px;
+}
+
+.tailoring-size-row {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.tailoring-size-label {
+    width: 64px;
+    font-size: 12px;
+    line-height: 16px;
+    color: #d0d0d0;
+}
+
+.tailoring-size-row sp-textfield {
+    flex: 1 1 auto;
+}
+
+.tailoring-help-box {
     box-sizing: border-box;
     width: 100%;
-    height: 28px;
-    border: 1px solid #666;
-    border-radius: 4px;
-    background: #333;
-    color: #f0f0f0;
+    height: 130px;
+    margin-top: 8px;
+    padding: 8px 10px;
+    border: 1px solid #4f4f4f;
+    background: #2b2b2b;
+    color: #d8d8d8;
+    font-size: 12px;
+    line-height: 16px;
+    white-space: pre-wrap;
+    overflow: auto;
 }
 
-.tailoring-range {
-    width: 100%;
+.tailoring-help-box-title {
+    margin-bottom: 5px;
+    color: #ffffff;
+    font-size: 12px;
+    line-height: 16px;
 }
 
-.tailoring-actions {
+.tailoring-help-box-body {
+    color: #d8d8d8;
+    font-size: 12px;
+    line-height: 16px;
+    white-space: pre-wrap;
+}
+
+.tailoring-dialog-actions {
+    box-sizing: border-box;
+    width: 84px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    margin-top: 4px;
+    padding-top: 2px;
 }
 
-.tailoring-actions sp-action-button {
-    width: 100%;
-    cursor: pointer;
+.tailoring-dialog-actions sp-button {
+    width: 84px;
+    margin-bottom: 10px;
 }
 
 .tailoring-status {
-    min-height: 20px;
-    margin-top: 10px;
+    min-height: 16px;
+    margin-top: 8px;
     font-size: 12px;
+    line-height: 16px;
     color: #bfbfbf;
-}
-
-.tailoring-status.is-success {
-    color: #1b6e3a;
 }
 
 .tailoring-status.is-error {
     color: #c81e1e;
+}
+
+sp-textfield,
+sp-picker,
+sp-slider {
+    box-sizing: border-box;
 }

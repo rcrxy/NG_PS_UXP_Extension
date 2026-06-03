@@ -1,9 +1,18 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { entrypoints } from "uxp";
+import { registerSpectrumComponents } from "./spectrumComponents.js";
 import { GuidePanel } from "./module/guide/GuidePanel.jsx";
 import { TailoringPanel } from "./module/tailoring/TailoringPanel.jsx";
 import { exportSlices } from "./module/tailoring/tailoringService.js";
+
+const spectrumComponentsReady = registerSpectrumComponents().catch(error => {
+    if (typeof console !== "undefined" && typeof console.warn === "function") {
+        console.warn("[Spectrum] component registration failed", error);
+    }
+
+    return [];
+});
 
 const panelRoots = new WeakMap();
 let tailoringDialog = null;
@@ -32,7 +41,13 @@ function renderPanel(node, PanelComponent) {
         panelRoots.set(node, root);
     }
 
-    root.render(<PanelComponent />);
+    spectrumComponentsReady
+        .then(() => {
+            root.render(<PanelComponent />);
+        })
+        .catch(error => {
+            renderError(node, error);
+        });
 }
 
 function logTailoring(message, detail) {
@@ -71,15 +86,26 @@ async function runTailoringExport(options) {
     }
 }
 
-function showTailoringDialog() {
+async function showTailoringDialog() {
     if (tailoringDialog) {
         return;
     }
 
+    await spectrumComponentsReady;
+
     const dialog = document.createElement("dialog");
     dialog.className = "tailoring-command-dialog";
+    dialog.style.width = "520px";
+    dialog.style.height = "430px";
+    dialog.style.padding = "0";
+    dialog.style.background = "#2f2f2f";
+    dialog.style.color = "#e6e6e6";
 
     const mountNode = document.createElement("div");
+    mountNode.style.width = "100%";
+    mountNode.style.height = "100%";
+    mountNode.style.minHeight = "260px";
+    mountNode.style.background = "#2f2f2f";
     dialog.appendChild(mountNode);
     document.body.appendChild(dialog);
 
@@ -148,10 +174,10 @@ function showTailoringDialog() {
         waitsForUxpModalResult = true;
         const modalResult = dialog.uxpShowModal({
             title: "自定义导出",
-            resize: "both",
+            resize: "none",
             size: {
-                width: 360,
-                height: 320,
+                width: 520,
+                height: 430,
             },
         });
 
