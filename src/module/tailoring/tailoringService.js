@@ -376,8 +376,103 @@ function normalizeQuality(value) {
     return Math.max(1, Math.min(12, Math.round(quality)));
 }
 
-function formatExportName(index, format) {
-    return `tailoring_${String(index + 1).padStart(2, "0")}.${format}`;
+function getSourceBaseName(document) {
+   const rawName = (document && (document.title || document.name)) || "untitled";
+   return String(rawName || "untitled").replace(/\.[^.\\/]+$/, "") || "untitled";
+}
+
+function normalizeNameTemplate(value, sourceName) {
+   const template = String(value || "").trim();
+   return template || sourceName || "untitled";
+}
+
+function sanitizeFileBaseName(value, fallback) {
+   const text = String(value || "")
+      .replace(/[<>:"/\\|?*\x00-\x1f]/g, "_")
+      .replace(/[. ]+$/g, "")
+      .trim();
+
+   return text || fallback || "tailoring";
+}
+
+function getAutoPadding(total) {
+   return Math.max(1, String(Math.max(1, total)).length);
+}
+
+function padSequenceNumber(value, padding) {
+   const numberText = String(Math.abs(value));
+   const padded = padding > 0 ? numberText.padStart(padding, "0") : numberText;
+   return value < 0 ? `-${padded}` : padded;
+}
+
+function parseSequenceToken(content) {
+   const options = {};
+   let hasSequenceStart = false;
+
+   for (const rawPart of String(content || "").split(",")) {
+      const match = rawPart.trim().match(/^(start|s|padding|p|increment|i)\s*=\s*(-?\d+)$/i);
+      if (!match) {
+         continue;
+      }
+
+      const key = match[1].toLowerCase();
+      const value = Number(match[2]);
+
+      if (key === "start" || key === "s") {
+         options.start = value;
+         hasSequenceStart = true;
+      } else if (key === "padding" || key === "p") {
+         options.padding = value;
+      } else if (key === "increment" || key === "i") {
+         options.increment = value;
+      }
+   }
+
+   if (!hasSequenceStart) {
+      return null;
+   }
+
+   return {
+      start: Number.isFinite(options.start) ? options.start : 1,
+      padding: Number.isFinite(options.padding) ? Math.max(0, options.padding) : 0,
+      increment: Number.isFinite(options.increment) ? options.increment : 1,
+   };
+}
+
+function renderNameTemplate(template, index, sourceName) {
+   let hasSequence = false;
+   const rendered = template.replace(/\{([^{}]+)\}/g, (matched, content) => {
+      const trimmedContent = String(content || "").trim();
+
+      if (trimmedContent.toLowerCase() === "name") {
+         return sourceName;
+      }
+
+      const sequence = parseSequenceToken(trimmedContent);
+      if (!sequence) {
+         return matched;
+      }
+
+      hasSequence = true;
+      const value = sequence.start + index * sequence.increment;
+      return padSequenceNumber(value, sequence.padding);
+   });
+
+   return { rendered, hasSequence };
+}
+
+function formatExportName(index, format, context) {
+   const sourceName = context.sourceName;
+   const template = context.template;
+   const total = context.total;
+   const fallback = sourceName || "tailoring";
+   const templateResult = renderNameTemplate(template, index, sourceName);
+   const baseName = templateResult.hasSequence
+      ? templateResult.rendered
+      : `${templateResult.rendered}_${padSequenceNumber(index + 1, getAutoPadding(total))}`;
+   const safeBaseName = sanitizeFileBaseName(baseName, fallback);
+
+   return `${safeBaseName}.${format}`;
 }
 
 function getCloseWithoutSavingOption() {
@@ -510,8 +605,14 @@ export async function exportSlices(options = {}) {
     const format = normalizeFormat(options.format);
     const quality = normalizeQuality(options.quality);
     const sourceDocument = app.activeDocument;
+    const sourceName = getSourceBaseName(sourceDocument);
     const guideResult = await readReferenceLines();
     const slices = buildSlices(sourceDocument, guideResult);
+    const nameContext = {
+       sourceName,
+       template: normalizeNameTemplate(options.exportName, sourceName),
+       total: slices.length,
+    };
 
     if (slices.length === 0) {
         throw new Error("参考线没有形成可导出的切片区域");
@@ -526,7 +627,7 @@ export async function exportSlices(options = {}) {
 
     const files = [];
     for (let index = 0; index < slices.length; index += 1) {
-        const fileName = formatExportName(index, format);
+        const fileName = formatExportName(index, format, nameContext);
         const file = await folder.createFile(fileName, { overwrite: true });
         files.push({ file, fileName });
     }
