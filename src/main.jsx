@@ -1,18 +1,9 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { entrypoints } from "uxp";
-import { registerSpectrumComponents } from "./spectrumComponents.js";
 import { GuidePanel } from "./module/guide/GuidePanel.jsx";
 import { TailoringPanel } from "./module/tailoring/TailoringPanel.jsx";
 import { exportSlices } from "./module/tailoring/tailoringService.js";
-
-const spectrumComponentsReady = registerSpectrumComponents().catch(error => {
-    if (typeof console !== "undefined" && typeof console.warn === "function") {
-        console.warn("[Spectrum] component registration failed", error);
-    }
-
-    return [];
-});
 
 const panelRoots = new WeakMap();
 let tailoringDialog = null;
@@ -41,13 +32,7 @@ function renderPanel(node, PanelComponent) {
         panelRoots.set(node, root);
     }
 
-    spectrumComponentsReady
-        .then(() => {
-            root.render(<PanelComponent />);
-        })
-        .catch(error => {
-            renderError(node, error);
-        });
+    root.render(<PanelComponent />);
 }
 
 function logTailoring(message, detail) {
@@ -90,8 +75,6 @@ async function showTailoringDialog() {
     if (tailoringDialog) {
         return;
     }
-
-    await spectrumComponentsReady;
 
     const dialog = document.createElement("dialog");
     dialog.className = "tailoring-command-dialog";

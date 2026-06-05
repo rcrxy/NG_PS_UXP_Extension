@@ -22,9 +22,9 @@
     color: #d0d0d0;
 }
 
-sp-textfield {
+.guide-textfield {
+    box-sizing: border-box;
     width: 100%;
-    padding-inline: 3px !important;
 }
 
 .guide-actions {
@@ -43,9 +43,16 @@ sp-textfield {
     justify-content: center;
 }
 
-sp-action-button {
+.guide-button {
+    box-sizing: border-box;
     width: 100%;
     cursor: pointer;
+}
+
+.guide-textfield:disabled,
+.guide-button:disabled {
+    opacity: 0.5;
+    cursor: default;
 }
 
 .guide-status {

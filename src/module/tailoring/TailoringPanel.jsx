@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { app } from "photoshop";
+import spectrumNativeCss from "../../spectrumNative.css?inline";
 import panelCss from "./panel.css?inline";
 import { useInjectedStyle } from "../../util/useInjectedStyle.js";
 
@@ -49,7 +50,7 @@ const helpMessages = {
    },
    format: {
       title: "导出格式",
-      body: "支持 PNG 和 JPG(JPGR)",
+      body: "支持 PNG 和 JPG",
    },
    quality: {
       title: "JPG质量",
@@ -82,6 +83,7 @@ export function TailoringPanel({ onClose, onExport }) {
    const [status, setStatus] = useState({ text: "", isError: false });
    const [sourceName, setSourceName] = useState("untitled");
    const isCustomSize = mode === "custom";
+   useInjectedStyle("ng-spectrum-native-style", spectrumNativeCss);
    useInjectedStyle("ng-tailoring-panel-style", panelCss);
 
    useEffect(() => {
@@ -146,18 +148,20 @@ export function TailoringPanel({ onClose, onExport }) {
       <div className="tailoring-dialog-layout">
          <div className="tailoring-config">
             <div className="tailoring-name-section">
-               <sp-field-label class="tailoring-name-label" for="tailoring-name">
+               <label className="tailoring-name-label" htmlFor="tailoring-name">
                   导出名称
-               </sp-field-label>
+               </label>
                <div
                   className="tailoring-name-row"
                   onMouseEnter={() => setHelpContent(helpMessages.exportName)}
                   onFocus={() => setHelpContent(helpMessages.exportName)}>
-                  <sp-textfield
+                  <input
+                     type="text"
                      id="tailoring-name"
+                     className="tailoring-textfield spectrum-Textfield-input"
                      ref={exportNameRef}
                      disabled={busy}
-                     size="s"></sp-textfield>
+                  />
                </div>
             </div>
 
@@ -167,33 +171,30 @@ export function TailoringPanel({ onClose, onExport }) {
                   className="tailoring-format-row"
                   onMouseEnter={() => setHelpContent(helpMessages.format)}
                   onFocus={() => setHelpContent(helpMessages.format)}>
-                  <sp-picker
+                  <select
                      id="tailoring-format"
-                     size="s"
+                     className="tailoring-picker spectrum-Picker"
                      value={format}
                      disabled={busy}
                      onMouseEnter={() => setHelpContent(helpMessages.format)}
                      onFocus={() => setHelpContent(helpMessages.format)}
                      onChange={(event) => setFormat(event.target.value)}>
-                     <sp-menu-item value="png" selected={format === "png"}>
-                        PNG
-                     </sp-menu-item>
-                     <sp-menu-item value="jpg" selected={format === "jpg"}>
-                        JPG
-                     </sp-menu-item>
-                  </sp-picker>
+                     <option value="png">PNG</option>
+                     <option value="jpg">JPG</option>
+                  </select>
 
                   {format === "jpg" && (
                      <>
-                        <sp-field-label
-                           class="tailoring-quality-label"
-                           for="tailoring-quality"
+                        <label
+                           className="tailoring-quality-label"
+                           htmlFor="tailoring-quality"
                            onMouseEnter={() => setHelpContent(helpMessages.quality)}>
                            质量
-                        </sp-field-label>
-                        <sp-slider
+                        </label>
+                        <input
+                           type="range"
                            id="tailoring-quality"
-                           size="s"
+                           className="tailoring-slider spectrum-Slider"
                            min="1"
                            max="12"
                            step="1"
@@ -202,7 +203,8 @@ export function TailoringPanel({ onClose, onExport }) {
                            onMouseEnter={() => setHelpContent(helpMessages.quality)}
                            onFocus={() => setHelpContent(helpMessages.quality)}
                            onInput={(event) => setQuality(Number(event.target.value))}
-                           onChange={(event) => setQuality(Number(event.target.value))}></sp-slider>
+                           onChange={(event) => setQuality(Number(event.target.value))}
+                        />
                         <span className="tailoring-quality-value">{quality}</span>
                      </>
                   )}
@@ -215,21 +217,17 @@ export function TailoringPanel({ onClose, onExport }) {
                   className="tailoring-mode-row"
                   onMouseEnter={() => setHelpContent(helpMessages.mode)}
                   onFocus={() => setHelpContent(helpMessages.mode)}>
-                  <sp-picker
+                  <select
                      id="tailoring-mode"
-                     size="s"
+                     className="tailoring-picker spectrum-Picker"
                      value={mode}
                      disabled={busy}
                      onMouseEnter={() => setHelpContent(helpMessages.mode)}
                      onFocus={() => setHelpContent(helpMessages.mode)}
                      onChange={(event) => setMode(event.target.value)}>
-                     <sp-menu-item value="guides" selected={mode === "guides"}>
-                        依据参考线
-                     </sp-menu-item>
-                     <sp-menu-item value="custom" selected={mode === "custom"}>
-                        自定义尺寸
-                     </sp-menu-item>
-                  </sp-picker>
+                     <option value="guides">依据参考线</option>
+                     <option value="custom">自定义尺寸</option>
+                  </select>
                </div>
 
                <div className="tailoring-size-grid">
@@ -237,28 +235,32 @@ export function TailoringPanel({ onClose, onExport }) {
                      className="tailoring-size-row"
                      onMouseEnter={() => setHelpContent(helpMessages.size)}
                      onFocus={() => setHelpContent(helpMessages.size)}>
-                     <sp-field-label class="tailoring-size-label" for="tailoring-horizontal">
+                     <label className="tailoring-size-label" htmlFor="tailoring-horizontal">
                         水平划分
-                     </sp-field-label>
-                     <sp-textfield
+                     </label>
+                     <input
+                        type="text"
                         id="tailoring-horizontal"
+                        className="tailoring-textfield spectrum-Textfield-input"
                         ref={horizontalSizeRef}
                         disabled={busy || !isCustomSize}
-                        size="s"></sp-textfield>
+                     />
                   </div>
 
                   <div
                      className="tailoring-size-row"
                      onMouseEnter={() => setHelpContent(helpMessages.size)}
                      onFocus={() => setHelpContent(helpMessages.size)}>
-                     <sp-field-label class="tailoring-size-label" for="tailoring-vertical">
+                     <label className="tailoring-size-label" htmlFor="tailoring-vertical">
                         垂直划分
-                     </sp-field-label>
-                     <sp-textfield
+                     </label>
+                     <input
+                        type="text"
                         id="tailoring-vertical"
+                        className="tailoring-textfield spectrum-Textfield-input"
                         ref={verticalSizeRef}
                         disabled={busy || !isCustomSize}
-                        size="s"></sp-textfield>
+                     />
                   </div>
                </div>
             </div>
@@ -276,12 +278,20 @@ export function TailoringPanel({ onClose, onExport }) {
          </div>
 
          <div className="tailoring-dialog-actions">
-            <sp-button size="s" variant="cta" disabled={busy} onClick={handleExport}>
+            <button
+               type="button"
+               className="tailoring-button spectrum-Button spectrum-Button--sizeS spectrum-Button--accent"
+               disabled={busy}
+               onClick={handleExport}>
                导出
-            </sp-button>
-            <sp-button size="s" variant="secondary" disabled={busy} onClick={handleCancel}>
+            </button>
+            <button
+               type="button"
+               className="tailoring-button spectrum-Button spectrum-Button--sizeS spectrum-Button--secondary"
+               disabled={busy}
+               onClick={handleCancel}>
                取消
-            </sp-button>
+            </button>
          </div>
       </div>
    );

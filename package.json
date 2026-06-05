@@ -7,14 +7,8 @@
         "watch": "vite build --watch"
     },
     "dependencies": {
-        "@spectrum-web-components/action-button": "^1.12.1",
-        "@spectrum-web-components/button": "^1.12.1",
-        "@spectrum-web-components/field-label": "^1.12.1",
-        "@spectrum-web-components/link": "^1.12.1",
-        "@spectrum-web-components/menu": "^1.12.1",
-        "@spectrum-web-components/picker": "^1.12.1",
-        "@spectrum-web-components/slider": "^1.12.1",
-        "@spectrum-web-components/textfield": "^1.12.1",
+        "@spectrum-web-components/checkbox": "^1.12.1",
+        "@spectrum-web-components/styles": "^1.12.1",
         "react": "^19.2.6",
         "react-dom": "^19.2.6"
     },

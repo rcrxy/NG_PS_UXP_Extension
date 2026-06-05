@@ -1,0 +1,43 @@
+@import "@spectrum-web-components/styles/all-medium-dark.css";
+@import "@spectrum-web-components/styles/global-elements.css";
+
+.spectrum-Textfield-input,
+.spectrum-Picker {
+    box-sizing: border-box;
+    min-height: var(--spectrum-component-height-75, 24px);
+    padding: 2px var(--spectrum-component-edge-to-text-75, 8px);
+    border: var(--spectrum-border-width-100, 1px) solid var(--spectrum-gray-600, #6e6e6e);
+    border-radius: var(--spectrum-corner-radius-100, 4px);
+    background: var(--spectrum-gray-100, #1d1d1d);
+    color: var(--spectrum-neutral-content-color-default, #f0f0f0);
+    font-family: var(--spectrum-sans-font-family-stack, Arial, sans-serif);
+    font-size: var(--spectrum-font-size-75, 12px);
+    line-height: var(--spectrum-line-height-100, 16px);
+    outline: none;
+}
+
+.spectrum-Textfield-input:hover,
+.spectrum-Picker:hover {
+    border-color: var(--spectrum-gray-700, #808080);
+}
+
+.spectrum-Textfield-input:focus,
+.spectrum-Picker:focus {
+    border-color: var(--spectrum-blue-800, #2680eb);
+    box-shadow: 0 0 0 1px var(--spectrum-blue-800, #2680eb);
+}
+
+.spectrum-Textfield-input:disabled,
+.spectrum-Picker:disabled {
+    color: var(--spectrum-disabled-content-color, #808080);
+    border-color: var(--spectrum-disabled-border-color, #555);
+    background: var(--spectrum-disabled-background-color, #303030);
+}
+
+.spectrum-Picker {
+    appearance: auto;
+}
+
+.spectrum-Slider {
+    accent-color: var(--spectrum-blue-800, #2680eb);
+}

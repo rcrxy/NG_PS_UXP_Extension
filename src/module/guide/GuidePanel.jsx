@@ -1,4 +1,5 @@
 import React, { useRef, useState } from "react";
+import spectrumNativeCss from "../../spectrumNative.css?inline";
 import panelCss from "./panel.css?inline";
 import { clearAllGuides, createGuides, isTransientBusyError, parsePositionList } from "./guideService.js";
 import { useInjectedStyle } from "../../util/useInjectedStyle.js";
@@ -17,6 +18,7 @@ export function GuidePanel() {
     const verticalInputRef = useRef(null);
     const [busy, setBusy] = useState(false);
     const [status, setStatus] = useState({ text: "", isError: false });
+    useInjectedStyle("ng-spectrum-native-style", spectrumNativeCss);
     useInjectedStyle("ng-guide-panel-style", panelCss);
 
     const updateStatus = (text, isError = false) => {
@@ -109,34 +111,58 @@ export function GuidePanel() {
     return (
         <div className="guide-panel">
             <div className="guide-row">
-                <sp-field-label class="guide-label" for="horizontal-input">
+                <label className="guide-label" htmlFor="horizontal-input">
                     水平位置（Y）
-                </sp-field-label>
-                <sp-textfield id="horizontal-input" ref={horizontalInputRef} size="s" disabled={busy}></sp-textfield>
+                </label>
+                <input
+                    type="text"
+                    id="horizontal-input"
+                    className="guide-textfield spectrum-Textfield-input"
+                    ref={horizontalInputRef}
+                    disabled={busy}
+                />
             </div>
 
             <div className="guide-row">
-                <sp-field-label class="guide-label" for="vertical-input">
+                <label className="guide-label" htmlFor="vertical-input">
                     垂直位置（X）
-                </sp-field-label>
-                <sp-textfield id="vertical-input" ref={verticalInputRef} size="s" disabled={busy}></sp-textfield>
+                </label>
+                <input
+                    type="text"
+                    id="vertical-input"
+                    className="guide-textfield spectrum-Textfield-input"
+                    ref={verticalInputRef}
+                    disabled={busy}
+                />
             </div>
 
             <div className="guide-actions">
                 <div className="button-box">
-                    <sp-action-button size="s" variant="cta" disabled={busy} onClick={handleCreateGuides}>
+                    <button
+                        type="button"
+                        className="guide-button spectrum-Button spectrum-Button--sizeS spectrum-Button--accent"
+                        disabled={busy}
+                        onClick={handleCreateGuides}>
                         创建参考线
-                    </sp-action-button>
+                    </button>
                 </div>
                 <div className="button-box">
-                    <sp-action-button size="s" variant="secondary" disabled={busy} onClick={handleClearInput}>
+                    <button
+                        type="button"
+                        className="guide-button spectrum-Button spectrum-Button--sizeS spectrum-Button--secondary"
+                        disabled={busy}
+                        onClick={handleClearInput}>
                         清空输入
-                    </sp-action-button>
+                    </button>
                 </div>
                 <div className="button-box">
-                    <sp-action-button size="s" variant="secondary" disabled={busy} onClick={handleClearGuides}>
+                    <button
+                        type="button"
+                        className="guide-button spectrum-Button spectrum-Button--sizeS spectrum-Button--secondary"
+                        disabled={busy}
+                        onClick={handleClearGuides}>
                         清空参考线
-                    </sp-action-button>
+                    </button>
                 </div>
             </div>
 
