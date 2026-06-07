@@ -1,7 +1,7 @@
 import { app, action, constants, core } from "photoshop";
 import { storage } from "uxp";
 
-const DEBUG_BUILD = "read-guides-export-format-quality-v10";
+const DEBUG_BUILD = "read-guides-export-format-quality-v11";
 
 function log(message, detail) {
     if (typeof console === "undefined" || typeof console.log !== "function") {
@@ -368,6 +368,10 @@ function normalizeFormat(value) {
     return String(value || "").toLowerCase() === "jpg" ? "jpg" : "png";
 }
 
+function normalizeMode(value) {
+    return String(value || "").toLowerCase() === "custom" ? "custom" : "guides";
+}
+
 function normalizeQuality(value) {
     const quality = Number(value);
     if (!Number.isFinite(quality)) {
@@ -597,9 +601,45 @@ async function saveDocument(file, format, quality) {
     log("save document result", result);
 }
 
+async function saveDocumentAsJpg(document, file, quality) {
+    const saveAs = document && document.saveAs;
+    const jpgSaver = saveAs && saveAs.jpg;
+    if (typeof jpgSaver !== "function") {
+        throw new Error("当前 Photoshop DOM 不支持 JPG 保存接口");
+    }
+
+    const normalizedQuality = normalizeQuality(quality);
+    log("save document by DOM jpg", {
+        quality: normalizedQuality,
+        fileName: file && file.name,
+    });
+    await jpgSaver.call(saveAs, file, { quality: normalizedQuality }, true);
+}
+
+async function saveSliceDocument(document, file, format, quality) {
+    if (format === "jpg") {
+        try {
+            await saveDocumentAsJpg(document, file, quality);
+            return;
+        } catch (error) {
+            warn("DOM JPG save failed, fallback to batchPlay", {
+                message: error && error.message,
+                stack: error && error.stack,
+            });
+        }
+    }
+
+    await saveDocument(file, format, quality);
+}
+
 export async function exportSlices(options = {}) {
     if (!app.documents || app.documents.length === 0 || !app.activeDocument) {
         throw new Error("请先打开一个 Photoshop 文档");
+    }
+
+    const mode = normalizeMode(options.mode);
+    if (mode !== "guides") {
+        throw new Error("自定义尺寸导出暂未实现，请先选择“依据参考线”导出");
     }
 
     const format = normalizeFormat(options.format);
@@ -648,7 +688,7 @@ export async function exportSlices(options = {}) {
                 };
                 log("crop slice bounds", cropBounds);
                 await sliceDocument.crop(cropBounds);
-                await saveDocument(file, format, quality);
+                await saveSliceDocument(sliceDocument, file, format, quality);
                 log("export slice done", { index: index + 1, fileName });
             } finally {
                 await closeWithoutSaving(sliceDocument);
@@ -659,6 +699,7 @@ export async function exportSlices(options = {}) {
     const result = {
         count: slices.length,
         format,
+        mode,
         quality: format === "jpg" ? quality : undefined,
         folderName: folder.name,
         folderPath: folder.nativePath,

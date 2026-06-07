@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import { app } from "photoshop";
-import spectrumNativeCss from "../../spectrumNative.css?inline";
 import panelCss from "./panel.css?inline";
 import { useInjectedStyle } from "../../util/useInjectedStyle.js";
 
@@ -37,6 +36,57 @@ function readTextfieldValue(ref, fallback) {
    return String(node.value);
 }
 
+function useNativeEvent(ref, eventName, handler) {
+   const handlerRef = useRef(handler);
+
+   useEffect(() => {
+      handlerRef.current = handler;
+   });
+
+   useEffect(() => {
+      const node = ref.current;
+      if (!node || typeof node.addEventListener !== "function") {
+         return undefined;
+      }
+
+      const listener = (event) => handlerRef.current(event);
+      node.addEventListener(eventName, listener);
+      return () => node.removeEventListener(eventName, listener);
+   });
+}
+
+function setDropdownSelectedIndex(node, selectedIndex) {
+   if (!node) {
+      return;
+   }
+
+   node.selectedIndex = selectedIndex;
+   const menuItems = typeof node.querySelectorAll === "function" ? node.querySelectorAll("sp-menu-item") : [];
+   Array.from(menuItems).forEach((item, index) => {
+      const isSelected = index === selectedIndex;
+      item.selected = isSelected;
+      if (isSelected) {
+         item.setAttribute("selected", "");
+      } else {
+         item.removeAttribute("selected");
+      }
+   });
+}
+
+function getDropdownValue(node, values, fallback) {
+   const selectedIndex = Number(node && node.selectedIndex);
+   if (Number.isInteger(selectedIndex) && selectedIndex >= 0 && selectedIndex < values.length) {
+      return values[selectedIndex];
+   }
+
+   return fallback;
+}
+
+function readSliderNumber(node, fallback) {
+   const value = Number(node && node.value);
+   return Number.isFinite(value) ? value : fallback;
+}
+
 const helpMessages = {
    exportName: {
       title: "导出名称",
@@ -71,19 +121,26 @@ const helpMessages = {
    },
 };
 
+const formatOptions = ["png", "jpg"];
+const modeOptions = ["guides", "custom"];
+
 export function TailoringPanel({ onClose, onExport }) {
    const exportNameRef = useRef(null);
    const horizontalSizeRef = useRef(null);
    const verticalSizeRef = useRef(null);
+   const formatDropdownRef = useRef(null);
+   const modeDropdownRef = useRef(null);
+   const qualitySliderRef = useRef(null);
+   const exportButtonRef = useRef(null);
+   const cancelButtonRef = useRef(null);
    const [busy, setBusy] = useState(false);
-   const [helpContent, setHelpContent] = useState(null);
+   const [helpContent, setHelpContent] = useState(helpMessages.exportName);
    const [format, setFormat] = useState("png");
    const [quality, setQuality] = useState(10);
    const [mode, setMode] = useState("guides");
    const [status, setStatus] = useState({ text: "", isError: false });
    const [sourceName, setSourceName] = useState("untitled");
    const isCustomSize = mode === "custom";
-   useInjectedStyle("ng-spectrum-native-style", spectrumNativeCss);
    useInjectedStyle("ng-tailoring-panel-style", panelCss);
 
    useEffect(() => {
@@ -100,8 +157,49 @@ export function TailoringPanel({ onClose, onExport }) {
       }
    }, []);
 
+   useEffect(() => {
+      setDropdownSelectedIndex(formatDropdownRef.current, formatOptions.indexOf(format));
+   }, [format]);
+
+   useEffect(() => {
+      setDropdownSelectedIndex(modeDropdownRef.current, modeOptions.indexOf(mode));
+   }, [mode]);
+
+   useEffect(() => {
+      if (qualitySliderRef.current) {
+         qualitySliderRef.current.value = quality;
+      }
+   }, [format, quality]);
+
+   const handleFormatChange = (event) => {
+      const nextFormat = getDropdownValue(event.target, formatOptions, format);
+      setFormat(nextFormat);
+      setHelpContent(nextFormat === "jpg" ? helpMessages.quality : helpMessages.format);
+   };
+
+   const handleQualityChange = (event) => {
+      setQuality(Math.max(1, Math.min(12, Math.round(readSliderNumber(event.target, quality)))));
+      setHelpContent(helpMessages.quality);
+   };
+
+   const handleModeChange = (event) => {
+      const nextMode = getDropdownValue(event.target, modeOptions, mode);
+      setMode(nextMode);
+      setHelpContent(nextMode === "custom" ? helpMessages.size : helpMessages.mode);
+      if (nextMode === "custom") {
+         setStatus({ text: "自定义尺寸导出暂未实现，请先使用依据参考线导出。", isError: true });
+      } else {
+         setStatus({ text: "", isError: false });
+      }
+   };
+
    const handleExport = () => {
       if (busy) {
+         return;
+      }
+
+      if (isCustomSize) {
+         setStatus({ text: "自定义尺寸导出暂未实现，请先选择依据参考线。", isError: true });
          return;
       }
 
@@ -144,24 +242,40 @@ export function TailoringPanel({ onClose, onExport }) {
       }
    };
 
+   useNativeEvent(formatDropdownRef, "change", handleFormatChange);
+   useNativeEvent(formatDropdownRef, "mouseenter", () => setHelpContent(helpMessages.format));
+   useNativeEvent(formatDropdownRef, "focus", () => setHelpContent(helpMessages.format));
+   useNativeEvent(exportNameRef, "mouseenter", () => setHelpContent(helpMessages.exportName));
+   useNativeEvent(exportNameRef, "focus", () => setHelpContent(helpMessages.exportName));
+   useNativeEvent(qualitySliderRef, "input", handleQualityChange);
+   useNativeEvent(qualitySliderRef, "change", handleQualityChange);
+   useNativeEvent(qualitySliderRef, "mouseenter", () => setHelpContent(helpMessages.quality));
+   useNativeEvent(qualitySliderRef, "focus", () => setHelpContent(helpMessages.quality));
+   useNativeEvent(modeDropdownRef, "change", handleModeChange);
+   useNativeEvent(modeDropdownRef, "mouseenter", () => setHelpContent(helpMessages.mode));
+   useNativeEvent(modeDropdownRef, "focus", () => setHelpContent(helpMessages.mode));
+   useNativeEvent(horizontalSizeRef, "mouseenter", () => setHelpContent(helpMessages.size));
+   useNativeEvent(horizontalSizeRef, "focus", () => setHelpContent(helpMessages.size));
+   useNativeEvent(verticalSizeRef, "mouseenter", () => setHelpContent(helpMessages.size));
+   useNativeEvent(verticalSizeRef, "focus", () => setHelpContent(helpMessages.size));
+   useNativeEvent(exportButtonRef, "click", handleExport);
+   useNativeEvent(cancelButtonRef, "click", handleCancel);
+
    return (
       <div className="tailoring-dialog-layout">
          <div className="tailoring-config">
             <div className="tailoring-name-section">
-               <label className="tailoring-name-label" htmlFor="tailoring-name">
-                  导出名称
-               </label>
+               <sp-label class="tailoring-name-label">导出名称</sp-label>
                <div
                   className="tailoring-name-row"
                   onMouseEnter={() => setHelpContent(helpMessages.exportName)}
                   onFocus={() => setHelpContent(helpMessages.exportName)}>
-                  <input
-                     type="text"
+                  <sp-textfield
                      id="tailoring-name"
-                     className="tailoring-textfield spectrum-Textfield-input"
+                     class="tailoring-textfield"
                      ref={exportNameRef}
-                     disabled={busy}
-                  />
+                     size="s"
+                     disabled={busy ? true : undefined}></sp-textfield>
                </div>
             </div>
 
@@ -171,43 +285,37 @@ export function TailoringPanel({ onClose, onExport }) {
                   className="tailoring-format-row"
                   onMouseEnter={() => setHelpContent(helpMessages.format)}
                   onFocus={() => setHelpContent(helpMessages.format)}>
-                  <select
+                  <sp-dropdown
                      id="tailoring-format"
-                     className="tailoring-picker spectrum-Picker"
-                     value={format}
-                     disabled={busy}
+                     class="tailoring-picker"
+                     ref={formatDropdownRef}
+                     size="s"
+                     disabled={busy ? true : undefined}
                      onMouseEnter={() => setHelpContent(helpMessages.format)}
-                     onFocus={() => setHelpContent(helpMessages.format)}
-                     onChange={(event) => setFormat(event.target.value)}>
-                     <option value="png">PNG</option>
-                     <option value="jpg">JPG</option>
-                  </select>
+                     onFocus={() => setHelpContent(helpMessages.format)}>
+                     <sp-menu slot="options">
+                        <sp-menu-item selected={format === "png" ? true : undefined}>PNG</sp-menu-item>
+                        <sp-menu-item selected={format === "jpg" ? true : undefined}>JPG</sp-menu-item>
+                     </sp-menu>
+                  </sp-dropdown>
 
-                  {format === "jpg" && (
-                     <>
-                        <label
-                           className="tailoring-quality-label"
-                           htmlFor="tailoring-quality"
-                           onMouseEnter={() => setHelpContent(helpMessages.quality)}>
-                           质量
-                        </label>
-                        <input
-                           type="range"
-                           id="tailoring-quality"
-                           className="tailoring-slider spectrum-Slider"
-                           min="1"
-                           max="12"
-                           step="1"
-                           value={quality}
-                           disabled={busy}
-                           onMouseEnter={() => setHelpContent(helpMessages.quality)}
-                           onFocus={() => setHelpContent(helpMessages.quality)}
-                           onInput={(event) => setQuality(Number(event.target.value))}
-                           onChange={(event) => setQuality(Number(event.target.value))}
-                        />
-                        <span className="tailoring-quality-value">{quality}</span>
-                     </>
-                  )}
+                  <div className={`tailoring-quality-controls${format === "jpg" ? " is-visible" : ""}`} aria-hidden={format === "jpg" ? "false" : "true"}>
+                     <sp-label class="tailoring-quality-label" onMouseEnter={() => setHelpContent(helpMessages.quality)}>
+                        质量
+                     </sp-label>
+                     <sp-slider
+                        id="tailoring-quality"
+                        class="tailoring-slider"
+                        min="1"
+                        max="12"
+                        value={quality}
+                        ref={qualitySliderRef}
+                        size="s"
+                        disabled={busy || format !== "jpg" ? true : undefined}
+                        onMouseEnter={() => setHelpContent(helpMessages.quality)}
+                        onFocus={() => setHelpContent(helpMessages.quality)}></sp-slider>
+                     <sp-label class="tailoring-quality-value">{quality}</sp-label>
+                  </div>
                </div>
             </div>
 
@@ -217,17 +325,19 @@ export function TailoringPanel({ onClose, onExport }) {
                   className="tailoring-mode-row"
                   onMouseEnter={() => setHelpContent(helpMessages.mode)}
                   onFocus={() => setHelpContent(helpMessages.mode)}>
-                  <select
+                  <sp-dropdown
                      id="tailoring-mode"
-                     className="tailoring-picker spectrum-Picker"
-                     value={mode}
-                     disabled={busy}
+                     class="tailoring-picker"
+                     ref={modeDropdownRef}
+                     size="s"
+                     disabled={busy ? true : undefined}
                      onMouseEnter={() => setHelpContent(helpMessages.mode)}
-                     onFocus={() => setHelpContent(helpMessages.mode)}
-                     onChange={(event) => setMode(event.target.value)}>
-                     <option value="guides">依据参考线</option>
-                     <option value="custom">自定义尺寸</option>
-                  </select>
+                     onFocus={() => setHelpContent(helpMessages.mode)}>
+                     <sp-menu slot="options">
+                        <sp-menu-item selected={mode === "guides" ? true : undefined}>依据参考线</sp-menu-item>
+                        <sp-menu-item selected={mode === "custom" ? true : undefined}>自定义尺寸</sp-menu-item>
+                     </sp-menu>
+                  </sp-dropdown>
                </div>
 
                <div className="tailoring-size-grid">
@@ -235,32 +345,26 @@ export function TailoringPanel({ onClose, onExport }) {
                      className="tailoring-size-row"
                      onMouseEnter={() => setHelpContent(helpMessages.size)}
                      onFocus={() => setHelpContent(helpMessages.size)}>
-                     <label className="tailoring-size-label" htmlFor="tailoring-horizontal">
-                        水平划分
-                     </label>
-                     <input
-                        type="text"
+                     <sp-label class="tailoring-size-label">水平划分</sp-label>
+                     <sp-textfield
                         id="tailoring-horizontal"
-                        className="tailoring-textfield spectrum-Textfield-input"
+                        class="tailoring-textfield"
                         ref={horizontalSizeRef}
-                        disabled={busy || !isCustomSize}
-                     />
+                        size="s"
+                        disabled={busy || !isCustomSize ? true : undefined}></sp-textfield>
                   </div>
 
                   <div
                      className="tailoring-size-row"
                      onMouseEnter={() => setHelpContent(helpMessages.size)}
                      onFocus={() => setHelpContent(helpMessages.size)}>
-                     <label className="tailoring-size-label" htmlFor="tailoring-vertical">
-                        垂直划分
-                     </label>
-                     <input
-                        type="text"
+                     <sp-label class="tailoring-size-label">垂直划分</sp-label>
+                     <sp-textfield
                         id="tailoring-vertical"
-                        className="tailoring-textfield spectrum-Textfield-input"
+                        class="tailoring-textfield"
                         ref={verticalSizeRef}
-                        disabled={busy || !isCustomSize}
-                     />
+                        size="s"
+                        disabled={busy || !isCustomSize ? true : undefined}></sp-textfield>
                   </div>
                </div>
             </div>
@@ -278,20 +382,22 @@ export function TailoringPanel({ onClose, onExport }) {
          </div>
 
          <div className="tailoring-dialog-actions">
-            <button
+            <sp-button
                type="button"
-               className="tailoring-button spectrum-Button spectrum-Button--sizeS spectrum-Button--accent"
-               disabled={busy}
-               onClick={handleExport}>
+               class="tailoring-button"
+               variant="cta"
+               ref={exportButtonRef}
+               disabled={busy ? true : undefined}>
                导出
-            </button>
-            <button
+            </sp-button>
+            <sp-button
                type="button"
-               className="tailoring-button spectrum-Button spectrum-Button--sizeS spectrum-Button--secondary"
-               disabled={busy}
-               onClick={handleCancel}>
+               class="tailoring-button"
+               variant="secondary"
+               ref={cancelButtonRef}
+               disabled={busy ? true : undefined}>
                取消
-            </button>
+            </sp-button>
          </div>
       </div>
    );
