@@ -16,14 +16,7 @@
     margin-bottom: 8px;
 }
 
-.guide-label {
-    font-size: 12px;
-    line-height: 1.4;
-    color: #d0d0d0;
-}
-
 .guide-textfield {
-    box-sizing: border-box;
     width: 100%;
 }
 
@@ -35,7 +28,7 @@
     justify-content: space-between;
 }
 
-.button-box {
+.guide-button-box {
     width: 49%;
     margin-bottom: 8px;
     display: flex;
@@ -44,27 +37,9 @@
 }
 
 .guide-button {
-    box-sizing: border-box;
     width: 100%;
-    cursor: pointer;
-}
-
-.guide-textfield:disabled,
-.guide-button:disabled {
-    opacity: 0.5;
-    cursor: default;
 }
 
 .guide-status {
     min-height: 20px;
-    font-size: 12px;
-    color: #bfbfbf;
-}
-
-.guide-status.is-success {
-    color: #1b6e3a;
-}
-
-.guide-status.is-error {
-    color: #c81e1e;
 }

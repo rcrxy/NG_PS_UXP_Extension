@@ -39,9 +39,6 @@
 .tailoring-name-label {
     flex: 0 0 64px;
     margin: 0 8px 0 0;
-    font-size: 12px;
-    line-height: 16px;
-    color: #d0d0d0;
 }
 
 .tailoring-section {
@@ -114,9 +111,6 @@
 .tailoring-quality-label {
     flex: 0 0 34px;
     width: 34px;
-    font-size: 12px;
-    line-height: 16px;
-    color: #d0d0d0;
 }
 
 .tailoring-format-row .tailoring-slider {
@@ -161,9 +155,6 @@
 
 .tailoring-size-label {
     width: 64px;
-    font-size: 12px;
-    line-height: 16px;
-    color: #d0d0d0;
 }
 
 .tailoring-size-row .tailoring-textfield {
@@ -215,39 +206,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: default;
 }
 
 .tailoring-status {
-    min-height: 16px;
     margin-top: 8px;
-    font-size: 12px;
-    line-height: 16px;
-    color: #bfbfbf;
-}
-
-.tailoring-status.is-error {
-    color: #c81e1e;
-}
-
-.tailoring-textfield,
-.tailoring-picker,
-.tailoring-slider,
-.tailoring-button {
-    box-sizing: border-box;
-    display: block;
-    background: transparent;
-    background-color: transparent;
-}
-
-.tailoring-textfield,
-.tailoring-picker {
-    min-height: 24px;
-}
-
-.tailoring-textfield[disabled],
-.tailoring-picker[disabled],
-.tailoring-slider[disabled],
-.tailoring-button[disabled] {
-    opacity: 0.5;
 }

@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { app } from "photoshop";
+import commonPanelCss from "../../panelCommon.css?inline";
 import panelCss from "./panel.css?inline";
 import { useInjectedStyle } from "../../util/useInjectedStyle.js";
+import { useNativeEvent } from "../../util/useNativeEvent.js";
 
 function log(message, detail) {
    if (typeof console === "undefined" || typeof console.log !== "function") {
@@ -34,25 +36,6 @@ function readTextfieldValue(ref, fallback) {
       return fallback;
    }
    return String(node.value);
-}
-
-function useNativeEvent(ref, eventName, handler) {
-   const handlerRef = useRef(handler);
-
-   useEffect(() => {
-      handlerRef.current = handler;
-   });
-
-   useEffect(() => {
-      const node = ref.current;
-      if (!node || typeof node.addEventListener !== "function") {
-         return undefined;
-      }
-
-      const listener = (event) => handlerRef.current(event);
-      node.addEventListener(eventName, listener);
-      return () => node.removeEventListener(eventName, listener);
-   });
 }
 
 function setDropdownSelectedIndex(node, selectedIndex) {
@@ -141,6 +124,7 @@ export function TailoringPanel({ onClose, onExport }) {
    const [status, setStatus] = useState({ text: "", isError: false });
    const [sourceName, setSourceName] = useState("untitled");
    const isCustomSize = mode === "custom";
+   useInjectedStyle("ng-common-panel-style", commonPanelCss);
    useInjectedStyle("ng-tailoring-panel-style", panelCss);
 
    useEffect(() => {
@@ -265,14 +249,14 @@ export function TailoringPanel({ onClose, onExport }) {
       <div className="tailoring-dialog-layout">
          <div className="tailoring-config">
             <div className="tailoring-name-section">
-               <sp-label class="tailoring-name-label">导出名称</sp-label>
+               <sp-label class="tailoring-name-label ng-label">导出名称</sp-label>
                <div
                   className="tailoring-name-row"
                   onMouseEnter={() => setHelpContent(helpMessages.exportName)}
                   onFocus={() => setHelpContent(helpMessages.exportName)}>
                   <sp-textfield
                      id="tailoring-name"
-                     class="tailoring-textfield"
+                     class="tailoring-textfield ng-textfield"
                      ref={exportNameRef}
                      size="s"
                      disabled={busy ? true : undefined}></sp-textfield>
@@ -287,7 +271,7 @@ export function TailoringPanel({ onClose, onExport }) {
                   onFocus={() => setHelpContent(helpMessages.format)}>
                   <sp-dropdown
                      id="tailoring-format"
-                     class="tailoring-picker"
+                     class="tailoring-picker ng-picker"
                      ref={formatDropdownRef}
                      size="s"
                      disabled={busy ? true : undefined}
@@ -299,13 +283,17 @@ export function TailoringPanel({ onClose, onExport }) {
                      </sp-menu>
                   </sp-dropdown>
 
-                  <div className={`tailoring-quality-controls${format === "jpg" ? " is-visible" : ""}`} aria-hidden={format === "jpg" ? "false" : "true"}>
-                     <sp-label class="tailoring-quality-label" onMouseEnter={() => setHelpContent(helpMessages.quality)}>
+                  <div
+                     className={`tailoring-quality-controls${format === "jpg" ? " is-visible" : ""}`}
+                     aria-hidden={format === "jpg" ? "false" : "true"}>
+                     <sp-label
+                        class="tailoring-quality-label ng-label"
+                        onMouseEnter={() => setHelpContent(helpMessages.quality)}>
                         质量
                      </sp-label>
                      <sp-slider
                         id="tailoring-quality"
-                        class="tailoring-slider"
+                        class="tailoring-slider ng-slider"
                         min="1"
                         max="12"
                         value={quality}
@@ -327,7 +315,7 @@ export function TailoringPanel({ onClose, onExport }) {
                   onFocus={() => setHelpContent(helpMessages.mode)}>
                   <sp-dropdown
                      id="tailoring-mode"
-                     class="tailoring-picker"
+                     class="tailoring-picker ng-picker"
                      ref={modeDropdownRef}
                      size="s"
                      disabled={busy ? true : undefined}
@@ -345,10 +333,10 @@ export function TailoringPanel({ onClose, onExport }) {
                      className="tailoring-size-row"
                      onMouseEnter={() => setHelpContent(helpMessages.size)}
                      onFocus={() => setHelpContent(helpMessages.size)}>
-                     <sp-label class="tailoring-size-label">水平划分</sp-label>
+                     <sp-label class="tailoring-size-label ng-label">水平划分</sp-label>
                      <sp-textfield
                         id="tailoring-horizontal"
-                        class="tailoring-textfield"
+                        class="tailoring-textfield ng-textfield"
                         ref={horizontalSizeRef}
                         size="s"
                         disabled={busy || !isCustomSize ? true : undefined}></sp-textfield>
@@ -358,10 +346,10 @@ export function TailoringPanel({ onClose, onExport }) {
                      className="tailoring-size-row"
                      onMouseEnter={() => setHelpContent(helpMessages.size)}
                      onFocus={() => setHelpContent(helpMessages.size)}>
-                     <sp-label class="tailoring-size-label">垂直划分</sp-label>
+                     <sp-label class="tailoring-size-label ng-label">垂直划分</sp-label>
                      <sp-textfield
                         id="tailoring-vertical"
-                        class="tailoring-textfield"
+                        class="tailoring-textfield ng-textfield"
                         ref={verticalSizeRef}
                         size="s"
                         disabled={busy || !isCustomSize ? true : undefined}></sp-textfield>
@@ -378,13 +366,13 @@ export function TailoringPanel({ onClose, onExport }) {
                )}
             </div>
 
-            <div className={`tailoring-status${status.isError ? " is-error" : ""}`}>{status.text}</div>
+            <div className={`tailoring-status ng-status${status.isError ? " is-error" : ""}`}>{status.text}</div>
          </div>
 
          <div className="tailoring-dialog-actions">
             <sp-button
                type="button"
-               class="tailoring-button"
+               class="tailoring-button ng-button"
                variant="cta"
                ref={exportButtonRef}
                disabled={busy ? true : undefined}>
@@ -392,7 +380,7 @@ export function TailoringPanel({ onClose, onExport }) {
             </sp-button>
             <sp-button
                type="button"
-               class="tailoring-button"
+               class="tailoring-button ng-button"
                variant="secondary"
                ref={cancelButtonRef}
                disabled={busy ? true : undefined}>

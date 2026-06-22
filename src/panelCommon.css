@@ -1,0 +1,46 @@
+.ng-label {
+    font-size: 12px;
+    line-height: 16px;
+    color: #d0d0d0;
+}
+
+.ng-textfield,
+.ng-picker,
+.ng-slider,
+.ng-button {
+    box-sizing: border-box;
+    display: block;
+    background: transparent;
+    background-color: transparent;
+}
+
+.ng-textfield,
+.ng-picker {
+    min-height: 24px;
+}
+
+.ng-button {
+    cursor: default;
+}
+
+.ng-textfield[disabled],
+.ng-picker[disabled],
+.ng-slider[disabled],
+.ng-button[disabled] {
+    opacity: 0.5;
+}
+
+.ng-status {
+    min-height: 16px;
+    font-size: 12px;
+    line-height: 16px;
+    color: #bfbfbf;
+}
+
+.ng-status.is-success {
+    color: #1b6e3a;
+}
+
+.ng-status.is-error {
+    color: #c81e1e;
+}
