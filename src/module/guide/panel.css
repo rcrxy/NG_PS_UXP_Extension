@@ -12,8 +12,11 @@
 .guide-row {
     display: flex;
     flex-direction: column;
-    gap: 4px;
     margin-bottom: 8px;
+}
+
+.guide-label {
+    margin-bottom: 4px;
 }
 
 .guide-textfield {
@@ -22,7 +25,8 @@
 
 .guide-actions {
     display: flex;
-    flex-flow: row wrap;
+    flex-direction: row;
+    flex-wrap: wrap;
     margin-top: 10px;
     align-items: center;
     justify-content: space-between;

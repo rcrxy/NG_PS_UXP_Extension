@@ -70,6 +70,75 @@ function readSliderNumber(node, fallback) {
    return Number.isFinite(value) ? value : fallback;
 }
 
+const formatOptions = ["png", "jpg"];
+const modeOptions = ["guides", "custom"];
+const divisionUnitOptions = ["pixels", "percent", "equal"];
+const STORAGE_KEY = "ng-tailoring-export-config-v1";
+const defaultConfig = {
+   format: "jpg",
+   quality: 10,
+   mode: "custom",
+   exportName: "",
+   horizontalSize: "1",
+   horizontalUnit: "equal",
+   verticalSize: "1",
+   verticalUnit: "equal",
+};
+
+function normalizeOption(value, options, fallback) {
+   return options.includes(value) ? value : fallback;
+}
+
+function normalizeQuality(value) {
+   const quality = Number(value);
+   if (!Number.isFinite(quality)) {
+      return defaultConfig.quality;
+   }
+   return Math.max(1, Math.min(12, Math.round(quality)));
+}
+
+function readStoredConfig() {
+   if (typeof localStorage === "undefined") {
+      return defaultConfig;
+   }
+
+   try {
+      const storedConfig = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+      return {
+         ...defaultConfig,
+         format: normalizeOption(storedConfig.format, formatOptions, defaultConfig.format),
+         quality: normalizeQuality(storedConfig.quality),
+         mode: defaultConfig.mode,
+         exportName: String(storedConfig.exportName || ""),
+         horizontalSize: String(storedConfig.horizontalSize || defaultConfig.horizontalSize),
+         horizontalUnit: normalizeOption(storedConfig.horizontalUnit, divisionUnitOptions, defaultConfig.horizontalUnit),
+         verticalSize: String(storedConfig.verticalSize || defaultConfig.verticalSize),
+         verticalUnit: normalizeOption(storedConfig.verticalUnit, divisionUnitOptions, defaultConfig.verticalUnit),
+      };
+   } catch (error) {
+      log("read tailoring config failed", {
+         message: error && error.message,
+         error,
+      });
+      return defaultConfig;
+   }
+}
+
+function writeStoredConfig(config) {
+   if (config.mode !== "custom" || typeof localStorage === "undefined") {
+      return;
+   }
+
+   try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+   } catch (error) {
+      log("write tailoring config failed", {
+         message: error && error.message,
+         error,
+      });
+   }
+}
+
 const helpMessages = {
    exportName: {
       title: "导出名称",
@@ -91,36 +160,38 @@ const helpMessages = {
    },
    mode: {
       title: "导出方式",
-      body: "1. 根据当前的参考线进行裁切导出\n2. 根据自定义的尺寸信息进行裁切导出",
+      body: "1. 根据当前的参考线进行裁切导出\n2. 根据自定义的水平/垂直划分进行裁切导出",
    },
    size: {
       title: "水平划分 / 垂直划分",
       body:
          "支持像素、百分比、等分量\n" +
          "输入示例：\n" +
-         "像素：100px - 按照 100 项目裁切\n" +
-         "百分比：50% - 按照 50% 的尺寸裁切\n" +
-         "等分量：1 - 裁切为 1 份",
+         "像素：100 - 每 100px 裁切一次\n" +
+         "百分比：50 - 每 50% 裁切一次\n" +
+         "等分量：3 - 平均裁切为 3 份",
    },
 };
-
-const formatOptions = ["png", "jpg"];
-const modeOptions = ["guides", "custom"];
 
 export function TailoringPanel({ onClose, onExport }) {
    const exportNameRef = useRef(null);
    const horizontalSizeRef = useRef(null);
    const verticalSizeRef = useRef(null);
+   const horizontalUnitDropdownRef = useRef(null);
+   const verticalUnitDropdownRef = useRef(null);
    const formatDropdownRef = useRef(null);
    const modeDropdownRef = useRef(null);
    const qualitySliderRef = useRef(null);
    const exportButtonRef = useRef(null);
    const cancelButtonRef = useRef(null);
+   const [initialConfig] = useState(readStoredConfig);
    const [busy, setBusy] = useState(false);
    const [helpContent, setHelpContent] = useState(helpMessages.exportName);
-   const [format, setFormat] = useState("png");
-   const [quality, setQuality] = useState(10);
-   const [mode, setMode] = useState("guides");
+   const [format, setFormat] = useState(initialConfig.format);
+   const [quality, setQuality] = useState(initialConfig.quality);
+   const [mode, setMode] = useState(initialConfig.mode);
+   const [horizontalUnit, setHorizontalUnit] = useState(initialConfig.horizontalUnit);
+   const [verticalUnit, setVerticalUnit] = useState(initialConfig.verticalUnit);
    const [status, setStatus] = useState({ text: "", isError: false });
    const [sourceName, setSourceName] = useState("untitled");
    const isCustomSize = mode === "custom";
@@ -131,15 +202,15 @@ export function TailoringPanel({ onClose, onExport }) {
       const currentSourceName = getSourceName();
       setSourceName(currentSourceName);
       if (exportNameRef.current && !exportNameRef.current.value) {
-         exportNameRef.current.value = currentSourceName;
+         exportNameRef.current.value = initialConfig.exportName || currentSourceName;
       }
       if (horizontalSizeRef.current && !horizontalSizeRef.current.value) {
-         horizontalSizeRef.current.value = "1";
+         horizontalSizeRef.current.value = initialConfig.horizontalSize;
       }
       if (verticalSizeRef.current && !verticalSizeRef.current.value) {
-         verticalSizeRef.current.value = "1";
+         verticalSizeRef.current.value = initialConfig.verticalSize;
       }
-   }, []);
+   }, [initialConfig]);
 
    useEffect(() => {
       setDropdownSelectedIndex(formatDropdownRef.current, formatOptions.indexOf(format));
@@ -148,6 +219,14 @@ export function TailoringPanel({ onClose, onExport }) {
    useEffect(() => {
       setDropdownSelectedIndex(modeDropdownRef.current, modeOptions.indexOf(mode));
    }, [mode]);
+
+   useEffect(() => {
+      setDropdownSelectedIndex(horizontalUnitDropdownRef.current, divisionUnitOptions.indexOf(horizontalUnit));
+   }, [horizontalUnit]);
+
+   useEffect(() => {
+      setDropdownSelectedIndex(verticalUnitDropdownRef.current, divisionUnitOptions.indexOf(verticalUnit));
+   }, [verticalUnit]);
 
    useEffect(() => {
       if (qualitySliderRef.current) {
@@ -170,20 +249,21 @@ export function TailoringPanel({ onClose, onExport }) {
       const nextMode = getDropdownValue(event.target, modeOptions, mode);
       setMode(nextMode);
       setHelpContent(nextMode === "custom" ? helpMessages.size : helpMessages.mode);
-      if (nextMode === "custom") {
-         setStatus({ text: "自定义尺寸导出暂未实现，请先使用依据参考线导出。", isError: true });
-      } else {
-         setStatus({ text: "", isError: false });
-      }
+      setStatus({ text: "", isError: false });
+   };
+
+   const handleHorizontalUnitChange = (event) => {
+      setHorizontalUnit(getDropdownValue(event.target, divisionUnitOptions, horizontalUnit));
+      setHelpContent(helpMessages.size);
+   };
+
+   const handleVerticalUnitChange = (event) => {
+      setVerticalUnit(getDropdownValue(event.target, divisionUnitOptions, verticalUnit));
+      setHelpContent(helpMessages.size);
    };
 
    const handleExport = () => {
       if (busy) {
-         return;
-      }
-
-      if (isCustomSize) {
-         setStatus({ text: "自定义尺寸导出暂未实现，请先选择依据参考线。", isError: true });
          return;
       }
 
@@ -195,9 +275,12 @@ export function TailoringPanel({ onClose, onExport }) {
             exportName: readTextfieldValue(exportNameRef, sourceName),
             mode,
             horizontalSize: readTextfieldValue(horizontalSizeRef, "1"),
+            horizontalUnit,
             verticalSize: readTextfieldValue(verticalSizeRef, "1"),
+            verticalUnit,
          };
 
+         writeStoredConfig(exportOptions);
          log("export confirmed", exportOptions);
          if (typeof onExport === "function") {
             setStatus({ text: "正在关闭窗口并开始导出...", isError: false });
@@ -238,6 +321,12 @@ export function TailoringPanel({ onClose, onExport }) {
    useNativeEvent(modeDropdownRef, "change", handleModeChange);
    useNativeEvent(modeDropdownRef, "mouseenter", () => setHelpContent(helpMessages.mode));
    useNativeEvent(modeDropdownRef, "focus", () => setHelpContent(helpMessages.mode));
+   useNativeEvent(horizontalUnitDropdownRef, "change", handleHorizontalUnitChange);
+   useNativeEvent(horizontalUnitDropdownRef, "mouseenter", () => setHelpContent(helpMessages.size));
+   useNativeEvent(horizontalUnitDropdownRef, "focus", () => setHelpContent(helpMessages.size));
+   useNativeEvent(verticalUnitDropdownRef, "change", handleVerticalUnitChange);
+   useNativeEvent(verticalUnitDropdownRef, "mouseenter", () => setHelpContent(helpMessages.size));
+   useNativeEvent(verticalUnitDropdownRef, "focus", () => setHelpContent(helpMessages.size));
    useNativeEvent(horizontalSizeRef, "mouseenter", () => setHelpContent(helpMessages.size));
    useNativeEvent(horizontalSizeRef, "focus", () => setHelpContent(helpMessages.size));
    useNativeEvent(verticalSizeRef, "mouseenter", () => setHelpContent(helpMessages.size));
@@ -323,7 +412,7 @@ export function TailoringPanel({ onClose, onExport }) {
                      onFocus={() => setHelpContent(helpMessages.mode)}>
                      <sp-menu slot="options">
                         <sp-menu-item selected={mode === "guides" ? true : undefined}>依据参考线</sp-menu-item>
-                        <sp-menu-item selected={mode === "custom" ? true : undefined}>自定义尺寸</sp-menu-item>
+                        <sp-menu-item selected={mode === "custom" ? true : undefined}>自定义导出</sp-menu-item>
                      </sp-menu>
                   </sp-dropdown>
                </div>
@@ -340,6 +429,18 @@ export function TailoringPanel({ onClose, onExport }) {
                         ref={horizontalSizeRef}
                         size="s"
                         disabled={busy || !isCustomSize ? true : undefined}></sp-textfield>
+                     <sp-dropdown
+                        id="tailoring-horizontal-unit"
+                        class="tailoring-unit-picker ng-picker"
+                        ref={horizontalUnitDropdownRef}
+                        size="s"
+                        disabled={busy || !isCustomSize ? true : undefined}>
+                        <sp-menu slot="options">
+                           <sp-menu-item selected={horizontalUnit === "pixels" ? true : undefined}>像素</sp-menu-item>
+                           <sp-menu-item selected={horizontalUnit === "percent" ? true : undefined}>百分比</sp-menu-item>
+                           <sp-menu-item selected={horizontalUnit === "equal" ? true : undefined}>等分量</sp-menu-item>
+                        </sp-menu>
+                     </sp-dropdown>
                   </div>
 
                   <div
@@ -353,6 +454,18 @@ export function TailoringPanel({ onClose, onExport }) {
                         ref={verticalSizeRef}
                         size="s"
                         disabled={busy || !isCustomSize ? true : undefined}></sp-textfield>
+                     <sp-dropdown
+                        id="tailoring-vertical-unit"
+                        class="tailoring-unit-picker ng-picker"
+                        ref={verticalUnitDropdownRef}
+                        size="s"
+                        disabled={busy || !isCustomSize ? true : undefined}>
+                        <sp-menu slot="options">
+                           <sp-menu-item selected={verticalUnit === "pixels" ? true : undefined}>像素</sp-menu-item>
+                           <sp-menu-item selected={verticalUnit === "percent" ? true : undefined}>百分比</sp-menu-item>
+                           <sp-menu-item selected={verticalUnit === "equal" ? true : undefined}>等分量</sp-menu-item>
+                        </sp-menu>
+                     </sp-dropdown>
                   </div>
                </div>
             </div>

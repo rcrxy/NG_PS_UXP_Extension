@@ -2,6 +2,7 @@ import { app, action, constants, core } from "photoshop";
 import { storage } from "uxp";
 
 const DEBUG_BUILD = "read-guides-export-format-quality-v11";
+const MAX_CUSTOM_SEGMENTS_PER_AXIS = 500;
 
 function log(message, detail) {
     if (typeof console === "undefined" || typeof console.log !== "function") {
@@ -153,11 +154,7 @@ function uniqueSortedPositions(values, min, max) {
     return result;
 }
 
-function buildSlices(document, guideResult) {
-    const width = getDocumentDimension(document, "width");
-    const height = getDocumentDimension(document, "height");
-    const xPositions = uniqueSortedPositions(guideResult.verticalGuides, 0, width);
-    const yPositions = uniqueSortedPositions(guideResult.horizontalGuides, 0, height);
+function buildSlicesFromPositions(xPositions, yPositions) {
     const slices = [];
 
     for (let row = 0; row < yPositions.length - 1; row += 1) {
@@ -173,7 +170,102 @@ function buildSlices(document, guideResult) {
         }
     }
 
+    return slices;
+}
+
+function buildSlices(document, guideResult) {
+    const width = getDocumentDimension(document, "width");
+    const height = getDocumentDimension(document, "height");
+    const xPositions = uniqueSortedPositions(guideResult.verticalGuides, 0, width);
+    const yPositions = uniqueSortedPositions(guideResult.horizontalGuides, 0, height);
+    const slices = buildSlicesFromPositions(xPositions, yPositions);
+
     log("slices built", { xPositions, yPositions, slices });
+    return slices;
+}
+
+function normalizeDivisionUnit(value) {
+    const text = String(value || "").toLowerCase();
+    if (text === "pixels" || text === "pixel" || text === "px") {
+        return "pixels";
+    }
+    if (text === "percent" || text === "percentage" || text === "%") {
+        return "percent";
+    }
+    return "equal";
+}
+
+function normalizeDivisionValue(value, fieldName, unit) {
+    const number = Number(String(value || "").trim());
+    if (!Number.isFinite(number) || number <= 0) {
+        throw new Error(`${fieldName}必须是大于 0 的数字`);
+    }
+
+    if (unit === "equal" && !Number.isInteger(number)) {
+        throw new Error(`${fieldName}选择等分量时必须是整数`);
+    }
+
+    if (unit === "percent" && number > 100) {
+        throw new Error(`${fieldName}选择百分比时不能超过 100`);
+    }
+
+    if (unit === "equal" && number > MAX_CUSTOM_SEGMENTS_PER_AXIS) {
+        throw new Error(`${fieldName}等分数量不能超过 ${MAX_CUSTOM_SEGMENTS_PER_AXIS}`);
+    }
+
+    return number;
+}
+
+function buildStepPositions(max, step) {
+    const segmentCount = Math.ceil(max / step);
+    if (segmentCount > MAX_CUSTOM_SEGMENTS_PER_AXIS) {
+        throw new Error(`单个方向最多支持 ${MAX_CUSTOM_SEGMENTS_PER_AXIS} 个切片`);
+    }
+
+    const positions = [0];
+
+    for (let position = step; position < max; position += step) {
+        if (position > 0 && max - position > 0.5) {
+            positions.push(position);
+        }
+    }
+
+    positions.push(max);
+    return uniqueSortedPositions(positions, 0, max);
+}
+
+function buildEqualPositions(max, parts) {
+    const positions = [];
+
+    for (let index = 0; index <= parts; index += 1) {
+        positions.push((max * index) / parts);
+    }
+
+    return uniqueSortedPositions(positions, 0, max);
+}
+
+function buildCustomPositions(max, rawValue, rawUnit, fieldName) {
+    const unit = normalizeDivisionUnit(rawUnit);
+    const value = normalizeDivisionValue(rawValue, fieldName, unit);
+
+    if (unit === "pixels") {
+        return buildStepPositions(max, value);
+    }
+    if (unit === "percent") {
+        return buildStepPositions(max, (max * value) / 100);
+    }
+
+    return buildEqualPositions(max, value);
+}
+
+function buildCustomSlices(document, options) {
+    const width = getDocumentDimension(document, "width");
+    const height = getDocumentDimension(document, "height");
+    const xPositions = buildCustomPositions(width, options.horizontalSize, options.horizontalUnit, "水平划分");
+    const yPositions = buildCustomPositions(height, options.verticalSize, options.verticalUnit, "垂直划分");
+    const slices = buildSlicesFromPositions(xPositions, yPositions);
+
+    log("custom slices built", { xPositions, yPositions, slices });
     return slices;
 }
 
@@ -365,11 +457,11 @@ export async function readReferenceLines() {
 }
 
 function normalizeFormat(value) {
-    return String(value || "").toLowerCase() === "jpg" ? "jpg" : "png";
+    return String(value || "").toLowerCase() === "png" ? "png" : "jpg";
 }
 
 function normalizeMode(value) {
-    return String(value || "").toLowerCase() === "custom" ? "custom" : "guides";
+    return String(value || "").toLowerCase() === "guides" ? "guides" : "custom";
 }
 
 function normalizeQuality(value) {
@@ -638,16 +730,14 @@ export async function exportSlices(options = {}) {
     }
 
     const mode = normalizeMode(options.mode);
-    if (mode !== "guides") {
-        throw new Error("自定义尺寸导出暂未实现，请先选择“依据参考线”导出");
-    }
-
     const format = normalizeFormat(options.format);
     const quality = normalizeQuality(options.quality);
     const sourceDocument = app.activeDocument;
     const sourceName = getSourceBaseName(sourceDocument);
-    const guideResult = await readReferenceLines();
-    const slices = buildSlices(sourceDocument, guideResult);
+    const slices =
+        mode === "guides"
+            ? buildSlices(sourceDocument, await readReferenceLines())
+            : buildCustomSlices(sourceDocument, options);
     const nameContext = {
        sourceName,
        template: normalizeNameTemplate(options.exportName, sourceName),
@@ -655,7 +745,9 @@ export async function exportSlices(options = {}) {
     };
 
     if (slices.length === 0) {
-        throw new Error("参考线没有形成可导出的切片区域");
+        throw new Error(
+            mode === "guides" ? "参考线没有形成可导出的切片区域" : "自定义划分没有形成可导出的切片区域",
+        );
     }
 
     log("choose export folder");
@@ -701,6 +793,15 @@ export async function exportSlices(options = {}) {
         format,
         mode,
         quality: format === "jpg" ? quality : undefined,
+        custom:
+            mode === "custom"
+                ? {
+                      horizontalSize: options.horizontalSize,
+                      horizontalUnit: normalizeDivisionUnit(options.horizontalUnit),
+                      verticalSize: options.verticalSize,
+                      verticalUnit: normalizeDivisionUnit(options.verticalUnit),
+                  }
+                : undefined,
         folderName: folder.name,
         folderPath: folder.nativePath,
         files: files.map(item => item.fileName),
